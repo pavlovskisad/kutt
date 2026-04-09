@@ -73,7 +73,7 @@ function makeClipName(duration) {
 const recentClips = {};
 app.post('/api/clip', (req, res) => {
   const { startSecondsAgo, endSecondsAgo } = req.body;
-  if (!startSecondsAgo || !endSecondsAgo) return res.status(400).json({ error: 'Need time range' });
+  if (startSecondsAgo == null || endSecondsAgo == null) return res.status(400).json({ error: 'Need time range' });
   const duration = startSecondsAgo - endSecondsAgo;
   if (duration < 1 || duration > 1800) return res.status(400).json({ error: 'Clip 1-1800s' });
   const clientIP = req.ip;

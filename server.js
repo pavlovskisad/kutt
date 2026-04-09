@@ -9,7 +9,7 @@ app.use(express.json());
 const HLS_DIR = '/opt/kutt/hls/table2';
 const CLIPS_DIR = '/opt/kutt/clips';
 const LOGO_PATH = '/opt/kutt/logos/kutt-watermark.png';
-const HLS_URL = 'http://127.0.0.1:8888/table2/index.m3u8';
+const HLS_URL = 'http://127.0.0.1:8888/table2/stream.m3u8'; // MUST use stream.m3u8 (not index/master) for -sseof
 const PORT = 3333;
 
 // Serve clips with download header
@@ -75,31 +75,35 @@ app.post('/api/clip', (req, res) => {
   const { startSecondsAgo, endSecondsAgo } = req.body;
   if (!startSecondsAgo || !endSecondsAgo) return res.status(400).json({ error: 'Need time range' });
   const duration = startSecondsAgo - endSecondsAgo;
-  if (duration < 1 || duration > 120) return res.status(400).json({ error: 'Clip 1-120s' });
+  if (duration < 1 || duration > 1800) return res.status(400).json({ error: 'Clip 1-1800s' });
   const clientIP = req.ip;
   if (recentClips[clientIP] && Date.now() - recentClips[clientIP] < 10000) return res.status(429).json({ error: 'Wait 10s' });
   recentClips[clientIP] = Date.now();
-  const clipName = makeClipName(duration);
+  const durInt = Math.round(duration);
+  const clipName = makeClipName(durInt);
   const outputFile = path.join(CLIPS_DIR, clipName + '.mp4');
   const hasLogo = fs.existsSync(LOGO_PATH);
+  const encodeTimeout = Math.max(120000, durInt * 8000); // ~8s per clip second, min 2 min
   const args = hasLogo ? [
     '-sseof', '-' + startSecondsAgo, '-i', HLS_URL, '-i', LOGO_PATH,
-    '-t', String(duration), '-filter_complex', '[0:v][1:v]overlay=W-w-20:14:format=auto',
+    '-t', String(durInt), '-filter_complex', '[0:v][1:v]overlay=W-w-20:14:format=auto',
     '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
     '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', '-y', outputFile
   ] : [
     '-sseof', '-' + startSecondsAgo, '-i', HLS_URL,
-    '-t', String(duration), '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+    '-t', String(durInt), '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
     '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', '-y', outputFile
   ];
-  execFile('ffmpeg', args, { timeout: 60000 }, (error) => {
+  execFile('ffmpeg', args, { timeout: encodeTimeout }, (error) => {
     if (error) return res.status(500).json({ error: 'Encoding failed' });
     const stats = fs.statSync(outputFile);
     var thumbDir = path.join(CLIPS_DIR, 'thumbs');
     if (!fs.existsSync(thumbDir)) fs.mkdirSync(thumbDir, { recursive: true });
     var thumbFile = path.join(thumbDir, clipName + '.webp');
-    execFile('ffmpeg', ['-i', outputFile, '-vf', 'scale=360:-1,fps=12', '-c:v', 'libwebp', '-lossless', '0', '-q:v', '75', '-loop', '0', '-an', '-y', thumbFile], { timeout: 60000 }, function() {});
-    res.json({ url: '/clips/' + clipName + '.mp4', thumb: '/thumbs/' + clipName + '.webp', filename: clipName + '.mp4', duration: duration, sizeMB: (stats.size / 1024 / 1024).toFixed(1) });
+    // Lower fps for long clips to keep thumbnail file size sane
+    var thumbFps = durInt > 120 ? 4 : (durInt > 30 ? 8 : 12);
+    execFile('ffmpeg', ['-i', outputFile, '-vf', 'scale=360:-1,fps=' + thumbFps, '-c:v', 'libwebp', '-lossless', '0', '-q:v', '75', '-loop', '0', '-an', '-y', thumbFile], { timeout: encodeTimeout }, function() {});
+    res.json({ url: '/clips/' + clipName + '.mp4', thumb: '/thumbs/' + clipName + '.webp', filename: clipName + '.mp4', duration: durInt, sizeMB: (stats.size / 1024 / 1024).toFixed(1) });
     cleanOldClips();
   });
 });

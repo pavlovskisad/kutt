@@ -30,7 +30,7 @@ body:not(.R) .t.a{border-color:var(--y);color:var(--y)}
 body:not(.R) .t{color:var(--y)}
 body.R .t.a{border-color:var(--b);color:var(--b)}
 body.R .t{color:var(--b)}
-.vw{position:relative;width:100%;aspect-ratio:16/9;background:#080a08;overflow:hidden}
+.vw{position:relative;width:100%;aspect-ratio:4/3;background:#080a08;overflow:hidden}
 .vw video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .fstrip{position:absolute;top:0;left:0;right:0;height:50px;width:100%;object-fit:fill;border-radius:4px;opacity:.92;background:rgba(0,0,0,.15);pointer-events:none;display:block}
 .fstrip-loading{position:absolute;top:16px;left:0;right:0;text-align:center;font-size:9px;opacity:.5;letter-spacing:.1em;pointer-events:none}
@@ -45,7 +45,7 @@ body.R .t{color:var(--b)}
 .ft{font-size:9px;letter-spacing:.1em;font-weight:500;margin-bottom:8px;opacity:.5}
 .feed-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .cc{border-radius:10px;overflow:hidden;background:#0e2a40;border:1px solid #163a55}
-.ct{width:100%;aspect-ratio:16/9;background:#0a1e30;position:relative;overflow:hidden}
+.ct{width:100%;aspect-ratio:4/3;background:#0a1e30;position:relative;overflow:hidden}
 .cv{width:100%;height:100%;object-fit:cover;display:block}
 .cd{position:absolute;bottom:4px;right:5px;font-size:9px;color:rgba(255,255,255,.7);background:rgba(0,0,0,.55);padding:1px 5px;border-radius:3px}
 .ci-row{display:flex;align-items:center;padding:6px 8px;gap:4px}
@@ -63,7 +63,7 @@ body.R .t{color:var(--b)}
 .tw{padding:6px 16px 0}
 .tl{position:relative;height:72px;cursor:pointer;user-select:none;touch-action:none}
 .cr{position:absolute;top:0;height:50px;pointer-events:none;z-index:2}
-.cri{background:rgba(26,143,204,.18);border-left:3px solid var(--b);border-right:3px solid var(--b);height:100%;position:relative}
+.cri{background:rgba(26,143,204,.35);border-left:3px solid var(--b);border-right:3px solid var(--b);height:100%;position:relative;box-shadow:inset 0 0 0 1px rgba(255,225,53,.25)}
 .dl{position:absolute;top:2px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;white-space:nowrap;font-family:'Space Grotesk',sans-serif;color:var(--b);background:var(--y);padding:1px 5px;border-radius:3px;z-index:3}
 .hn{position:absolute;top:9px;width:14px;height:32px;background:var(--b);border-radius:4px;box-shadow:0 0 0 2px var(--y)}
 .hl{left:-9px}.hr{right:-9px}
@@ -176,7 +176,7 @@ let hlsR=null,replayReady=false;
 
 // === HELPERS ===
 function fs2(s){const a=Math.abs(Math.floor(s));return(s<0?'-':'')+Math.floor(a/60)+':'+String(a%60).padStart(2,'0')}
-function fd(s){s=Math.round(s);return s<60?s+'s':Math.floor(s/60)+'m '+s%60+'s'}
+function fd(s){s=Math.round(s);if(s<60)return s+'s';var m=Math.floor(s/60),r=s%60;return m+'m'+(r?' '+r+'s':'')}
 function dur(){return sAgo!==null&&eAgo!==null?Math.abs(sAgo-eAgo):0}
 function clipOld(){return sAgo!==null&&eAgo!==null?Math.max(sAgo,eAgo):0}  // older = larger ago = left on timeline
 function clipNew(){return sAgo!==null&&eAgo!==null?Math.min(sAgo,eAgo):0}  // newer = smaller ago = right on timeline
@@ -563,7 +563,9 @@ function rr(){
 
   // Preset buttons
   const d=Math.round(dur());
-  document.getElementById('pst').innerHTML=[5,10,20,30].map(s=>'<button class="pb'+(d===s?' a':'')+'" onclick="sp('+s+')">'+s+'s</button>').join('');
+  // Dynamic presets based on zoom level
+  var presets=zm<=60?[5,10,20,30]:zm<=120?[5,10,20,30,60]:zm<=300?[10,30,60,120,300]:[60,120,300,600,1800];
+  document.getElementById('pst').innerHTML=presets.map(s=>'<button class="pb'+(d===s?' a':'')+'" onclick="sp('+s+')">'+(s<60?s+'s':s<3600?Math.floor(s/60)+'m'+(s%60?s%60+'s':''):'30m')+'</button>').join('');
 
   // CTA
   const ct=document.getElementById('cta');

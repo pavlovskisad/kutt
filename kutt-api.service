@@ -1,0 +1,23 @@
+; /etc/systemd/system/kutt-api.service
+;
+; Reference copy — deploy with:
+;   scp server/kutt-api.service root@77.42.76.62:/etc/systemd/system/
+;   ssh root@77.42.76.62 "systemctl daemon-reload && systemctl enable --now kutt-api"
+
+[Unit]
+Description=KUTT Clip API
+After=network.target mediamtx.service
+Wants=mediamtx.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/kutt/api
+ExecStart=/usr/bin/node /opt/kutt/api/server.js
+Restart=on-failure
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

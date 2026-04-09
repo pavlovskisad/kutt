@@ -1,0 +1,46 @@
+# Netlify configuration for KUTT frontend.
+#
+# The frontend is a single static file (index.html). The backend (Node API)
+# runs on a Hetzner VPS at 77.42.76.62 alongside MediaMTX (HLS). These
+# redirects proxy API and media traffic back to the VPS so the frontend can
+# keep using same-origin relative URLs (no CORS config needed).
+#
+# NOTE: if you move DNS for kutt.online to Netlify, the VPS's Let's Encrypt
+# cert for kutt.online will eventually fail to renew. Recommended setup:
+#   - kutt.online        → Netlify (frontend + proxies below)
+#   - api.kutt.online    → VPS (new A record + new cert via certbot)
+# Then change the `to = "http://77.42.76.62:3333/..."` lines below to
+# `to = "https://api.kutt.online/..."`.
+
+[build]
+  publish = "."
+
+[[redirects]]
+  from = "/api/*"
+  to = "http://77.42.76.62:3333/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/clips/*"
+  to = "http://77.42.76.62:3333/clips/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/thumbs/*"
+  to = "http://77.42.76.62:3333/thumbs/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/hls/*"
+  to = "http://77.42.76.62:8888/:splat"
+  status = 200
+  force = true
+
+# SPA fallback (in case you add client-side routing later)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

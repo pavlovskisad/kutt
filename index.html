@@ -11,8 +11,9 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--y:#FFE135;--b:#1A8FCC}
-body{font-family:'JetBrains Mono','SF Mono',monospace;background:var(--b);color:var(--y);min-height:100vh;overflow-x:hidden;transition:background .35s,color .35s}
+body{font-family:'JetBrains Mono','SF Mono',monospace;background:var(--b);color:var(--y);min-height:100vh;overflow-x:hidden;transition:none}
 body.R{background:var(--y);color:var(--b)}
+.tab-flash{position:fixed;inset:0;z-index:998;pointer-events:none;opacity:1;transition:opacity .25s ease-out}
 button{-webkit-tap-highlight-color:transparent;font-family:inherit;cursor:pointer}
 @keyframes lp{0%,100%{opacity:1}50%{opacity:.3}}
 @keyframes sp{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
@@ -323,6 +324,12 @@ setInterval(function(){if(tab==='live')loadFeed()},15000);
 // === TAB SWITCH ===
 function sw(t){
   if(tab===t)return;
+  // Flash overlay to hide the color switch
+  var fl=document.createElement('div');fl.className='tab-flash';
+  fl.style.background=t==='replay'?'#FFE135':'#1A8FCC';
+  document.body.appendChild(fl);
+  requestAnimationFrame(function(){requestAnimationFrame(function(){fl.style.opacity='0'})});
+  setTimeout(function(){fl.remove()},300);
   tab=t;
   document.body.classList.toggle('R',t==='replay');
   document.getElementById('tl').classList.toggle('a',t==='live');

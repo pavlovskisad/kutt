@@ -100,9 +100,10 @@ app.post('/api/clip', (req, res) => {
     var thumbDir = path.join(CLIPS_DIR, 'thumbs');
     if (!fs.existsSync(thumbDir)) fs.mkdirSync(thumbDir, { recursive: true });
     var thumbFile = path.join(thumbDir, clipName + '.webp');
-    // Lower fps for long clips to keep thumbnail file size sane
-    var thumbFps = durInt > 120 ? 4 : (durInt > 30 ? 8 : 12);
-    execFile('ffmpeg', ['-i', outputFile, '-vf', 'scale=360:-1,fps=' + thumbFps, '-c:v', 'libwebp', '-lossless', '0', '-q:v', '75', '-loop', '0', '-an', '-y', thumbFile], { timeout: encodeTimeout }, function() {});
+    // Lightweight thumbnails: 240px wide, 4fps, max 3 seconds, lower quality
+    var thumbFps = 4;
+    var thumbDur = Math.min(3, durInt);
+    execFile('ffmpeg', ['-i', outputFile, '-t', String(thumbDur), '-vf', 'scale=240:-1,fps=' + thumbFps, '-c:v', 'libwebp', '-lossless', '0', '-q:v', '50', '-loop', '0', '-an', '-y', thumbFile], { timeout: encodeTimeout }, function() {});
     res.json({ url: '/clips/' + clipName + '.mp4', thumb: '/thumbs/' + clipName + '.webp', filename: clipName + '.mp4', duration: durInt, sizeMB: (stats.size / 1024 / 1024).toFixed(1) });
     cleanOldClips();
   });
@@ -211,7 +212,7 @@ function generateMissingThumbs() {
     clips.forEach(function(f) {
       var thumbFile = path.join(thumbDir, f.replace('.mp4', '.webp'));
       if (!fs.existsSync(thumbFile)) {
-        execFile('ffmpeg', ['-i', path.join(CLIPS_DIR, f), '-vf', 'scale=360:-1,fps=12', '-c:v', 'libwebp', '-lossless', '0', '-q:v', '75', '-loop', '0', '-an', '-y', thumbFile], { timeout: 60000 }, function() {});
+        execFile('ffmpeg', ['-i', path.join(CLIPS_DIR, f), '-t', '3', '-vf', 'scale=240:-1,fps=4', '-c:v', 'libwebp', '-lossless', '0', '-q:v', '50', '-loop', '0', '-an', '-y', thumbFile], { timeout: 60000 }, function() {});
       }
     });
   } catch(e) {}

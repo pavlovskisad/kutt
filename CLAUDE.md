@@ -1,6 +1,6 @@
 # KUTT — Context for Claude Code
 
-This is a live replay camera system for Kyiv United Table Tennis (kutt.online). Camera streams live to the site via RTMP→HLS with a 30-minute rolling buffer. Players scan a QR code on their phone, visit REPLAY STATION, scrub a filmstrip timeline to find their rally, and save the clip. Anonymous likes, public feed.
+This is a live replay camera system for Kyiv United Table Tennis (kutt.cam). Camera streams live to the site via RTMP→HLS with a 30-minute rolling buffer. Players scan a QR code on their phone, visit REPLAY STATION, scrub a filmstrip timeline to find their rally, and save the clip. Anonymous likes, public feed.
 
 This file is the handoff from a chat-based Claude session that built most of the current implementation. Read it end-to-end before making changes — there's important infrastructure knowledge here that isn't obvious from the code.
 
@@ -25,7 +25,7 @@ This file is the handoff from a chat-based Claude session that built most of the
          [Browser]  ── index.html (single file, vanilla JS + hls.js)
 ```
 
-Server: Hetzner VPS `77.42.76.62`, Ubuntu 24.04, domain `kutt.online`.
+Server: Hetzner VPS `77.42.76.62`, Ubuntu 24.04, domain `kutt.cam` (kutt.online redirects there).
 SSH: `root@77.42.76.62` (password auth — user is beginner at server admin, prefer full-file `scp` over `sed` edits).
 
 ## Key paths on the VPS
@@ -61,25 +61,19 @@ Express app on port 3333. Endpoints: `GET /api/clips?limit&offset` (paginated cl
 
 ## Deployment workflow
 
-**Frontend**: currently served from `/var/www/html/index.html` on the VPS via nginx. Moving to Netlify — see `netlify.toml` which proxies `/api/*`, `/clips/*`, `/thumbs/*`, `/hls/*` back to the VPS so the frontend keeps using same-origin relative URLs.
+**Everything is self-hosted on the VPS and deploys automatically.** Push to `main` → GitHub Actions (`.github/workflows/deploy.yml`) SSHes into the VPS, installs `server.js` → `/opt/kutt/api/server.js`, `index.html` and `overview.html` → `/var/www/html/`, restarts `kutt-api` **only if server.js changed** (a restart re-warms filmstrip caches for ~3 min), then health-checks `https://kutt.cam/health`. The remote install logic lives in `.github/scripts/remote-deploy.sh`.
 
-**Backend**: manual scp for now. User's preferred workflow:
-```bash
-scp server/server.js root@77.42.76.62:/opt/kutt/api/server.js
-ssh root@77.42.76.62 "systemctl restart kutt-api"
-```
-nginx reload when editing vhost:
-```bash
-scp docs/nginx-kutt.conf root@77.42.76.62:/etc/nginx/sites-available/kutt
-ssh root@77.42.76.62 "nginx -t && systemctl reload nginx"
-```
-
-**CI/CD wishlist**: GitHub Action that deploys `server/server.js` to VPS on push to main. Secrets: VPS SSH key. Not yet set up.
+- Auth: repo secret `VPS_SSH_KEY` holds a dedicated ed25519 private key; the matching public key is in `/root/.ssh/authorized_keys` on the VPS (key file `/root/.ssh/github_deploy`).
+- Deploy status: repo → Actions tab, or via GitHub MCP tools (`actions_list`, `get_job_logs`) from a Claude session.
+- **nginx changes stay manual on purpose.** The live vhost contains certbot-managed SSL lines that are NOT in the repo copy (`nginx-kutt.conf` is a pre-certbot reference). Never blind-overwrite `/etc/nginx/sites-available/kutt` — edit carefully on the server, then `nginx -t && systemctl reload nginx`.
+- The `netlify.toml` is a leftover from an abandoned Netlify idea — nothing uses it.
 
 ## Workflow notes from prior sessions
 
-- **User is on macOS.** Their zsh treats `!` as history expansion — avoid `!` in SSH commands or quote carefully.
-- **Avoid `sed` edits on the server via SSH.** Past attempts repeatedly corrupted files due to escaping issues with quotes, special chars, and multi-step pipelines in zsh. Full-file `scp` is the reliable path.
+- **User works mostly from their phone** (Claude Code cloud sessions + Termius for SSH, claude.ai app). Do NOT propose Mac-terminal workflows; the deploy pipeline exists precisely so the user never needs a terminal. When a manual VPS step is unavoidable, give a single copy-pasteable command for Termius.
+- **Claude's sandbox cannot SSH to the VPS** (port 22 blocked) — but outbound HTTPS works, so `curl https://kutt.cam/...` is available for verifying deploys.
+- **Termius pastes fine; Blink mangles URLs** (wraps them in `<>`). The user's Mac zsh treats `!` as history expansion — avoid `!` inside double quotes in any command you hand over.
+- **Avoid multi-step `sed` pipelines on the server.** Past attempts corrupted files due to quote/escaping issues. Full-file deploys via the pipeline are the reliable path; simple single `sed` in single quotes is OK for emergencies.
 - **User is a designer/builder, not a sysadmin.** Give exact copy-pasteable commands. Explain *why* alongside *what*. Prefer one-shot commands that deploy + test + show logs over multi-step sequences.
 - **User appreciates architectural discussion before code on big changes.** For patches, just ship the fix.
 
@@ -96,17 +90,19 @@ ssh root@77.42.76.62 "nginx -t && systemctl reload nginx"
 ## File inventory
 
 ```
-├── index.html              # frontend, single file, deploys to Netlify
-├── netlify.toml            # Netlify config + proxy redirects to VPS API
+├── index.html              # frontend, single file, auto-deploys to VPS
+├── overview.html           # product overview deck (linked from "?" in header)
+├── server.js               # Node API (Express), auto-deploys to VPS
+├── package.json            # deps: express, cors
+├── kutt-api.service        # systemd unit reference
+├── nginx-kutt.conf         # nginx vhost reference (pre-certbot — see deploy notes)
+├── netlify.toml            # leftover, unused
+├── KUTT_TECH_SPEC.md       # tech spec: v1.0 + stages 2-4 roadmap
 ├── README.md               # brief public-facing readme
 ├── CLAUDE.md               # this file
-├── .gitignore
-└── server/
-    ├── server.js           # Node API (Express)
-    ├── package.json        # deps: express, cors
-    ├── kutt-api.service    # systemd unit reference
-    ├── nginx-kutt.conf     # nginx vhost reference
-    └── deploy.sh           # shortcut deploy script
+└── .github/
+    ├── workflows/deploy.yml       # push to main → deploy to VPS
+    └── scripts/remote-deploy.sh   # install script that runs on the VPS
 ```
 
 ## Brand constants

@@ -34,8 +34,10 @@ jobs:
 
       - name: Health check
         run: |
+          # /api/buffer-info goes through nginx to the Node API — real API liveness.
+          # (/health falls through to index.html: no nginx location for it.)
           for i in 1 2 3 4 5; do
-            if curl -sf https://kutt.cam/health; then
+            if curl -sf https://kutt.cam/api/buffer-info; then
               echo ""
               echo "deploy OK"
               exit 0

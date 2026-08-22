@@ -434,12 +434,12 @@ function drawTable(){
   const c='rgba('+fgColor()+',0.14)';
   ctx.strokeStyle=c; ctx.lineWidth=1.5;
   ctx.beginPath();
-  ctx.moveTo(-W*0.38,H+2); ctx.lineTo(vpX-W*0.104,vpY+H*0.09);
-  ctx.moveTo(W*1.38,H+2); ctx.lineTo(vpX+W*0.104,vpY+H*0.09);
+  ctx.moveTo(-W*0.38,H+2); ctx.lineTo(vpX-W*0.19,vpY+H*0.09);
+  ctx.moveTo(W*1.38,H+2); ctx.lineTo(vpX+W*0.19,vpY+H*0.09);
   ctx.moveTo(W*0.5,H+2); ctx.lineTo(vpX,vpY+H*0.09);
   ctx.stroke();
   // net line
-  const ny=H*0.565, nw=W*0.60;
+  const ny=H*0.565, nw=W*0.70;
   ctx.strokeStyle='rgba('+fgColor()+',0.22)';
   ctx.beginPath();
   ctx.moveTo(W*0.5-nw/2,ny); ctx.lineTo(W*0.5+nw/2,ny);
@@ -449,7 +449,7 @@ function drawTable(){
   // far wall base
   ctx.strokeStyle='rgba('+fgColor()+',0.08)';
   ctx.beginPath();
-  ctx.moveTo(vpX-W*0.104,vpY+H*0.09); ctx.lineTo(vpX+W*0.104,vpY+H*0.09);
+  ctx.moveTo(vpX-W*0.19,vpY+H*0.09); ctx.lineTo(vpX+W*0.19,vpY+H*0.09);
   ctx.stroke();
 }
 

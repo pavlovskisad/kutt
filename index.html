@@ -787,7 +787,7 @@ function drawChannelsDemo(now,t){
 /* beat 2: your moments — a mini match; a highlight gets caught and loved */
 function drawCasesDemo(now,t){
   const ga=easeOut(clamp(t/700,0,1));
-  const cxm=W*0.5, cy=H*0.205;
+  const cxm=W*0.5, cy=H*0.25;
   const w=clamp(W*0.54,180,270), h=w*0.60;
   const fg=fgColor();
   const P=1050, C=6*P, tc=t%C;
@@ -866,7 +866,7 @@ function drawCasesDemo(now,t){
     const cp=easeOut(clamp((momentT-250)/450,0,1));
     const fade=momentT>1900?clamp(1-(momentT-1900)/500,0,1):1;
     const cw2=w*0.30, ch2=cw2*0.62;
-    const ccx=cxm+w*0.28, ccy=cy-h/2-14-cp*16;
+    const ccx=cxm+w*0.28, ccy=cy-h/2-6-cp*10;
     ctx.globalAlpha=ga*cp*fade;
     ctx.fillStyle='rgba('+fg+',0.14)'; rr(ccx-cw2/2,ccy-ch2/2,cw2,ch2,5); ctx.fill();
     ctx.strokeStyle='rgba('+fg+',0.95)'; ctx.lineWidth=1.6; rr(ccx-cw2/2,ccy-ch2/2,cw2,ch2,5); ctx.stroke();

@@ -69,7 +69,8 @@ p.body{font-size:clamp(14px,3.6vw,17px);line-height:1.6;max-width:44ch;font-fami
 
 /* pricing */
 .free-tag{font-size:10px;letter-spacing:.25em;border:1.5px solid currentColor;padding:6px 14px;border-radius:20px;opacity:.8}
-.beta-club{font-family:inherit;font-size:12px;letter-spacing:.08em;color:inherit;text-decoration:underline;text-underline-offset:3px;opacity:.85}
+.beta-club{font-family:inherit;font-size:12px;letter-spacing:.08em;color:inherit;text-decoration:underline;text-underline-offset:3px;opacity:.85;transition:transform .12s;display:inline-block}
+.beta-club:active{transform:scale(.95);opacity:1}
 .pro-tease{font-size:12px;letter-spacing:.1em;opacity:.9;border:1.5px dashed currentColor;padding:12px 20px;border-radius:10px;line-height:1.7;font-weight:700}
 
 /* CTA */
@@ -80,7 +81,9 @@ p.body{font-size:clamp(14px,3.6vw,17px);line-height:1.6;max-width:44ch;font-fami
   letter-spacing:.04em;text-decoration:none;
   padding:18px 34px;border-radius:14px;
   animation:ctap 2.2s ease-in-out infinite;
+  transition:transform .15s;
 }
+.cta-big:active{animation:none;transform:scale(.93)}
 .cta-dot{width:9px;height:9px;border-radius:50%;background:#ff3030;animation:lp 1.2s ease-in-out infinite}
 
 /* ═══ canvas scene ═══ */
@@ -92,7 +95,9 @@ p.body{font-size:clamp(14px,3.6vw,17px);line-height:1.6;max-width:44ch;font-fami
 .hd img{height:22px;display:block}
 .hd-beta{font-size:8px;letter-spacing:.12em;font-weight:700;padding:2px 6px;border-radius:4px;background:var(--fg);color:var(--bg);opacity:.55;transition:background .3s,color .3s}
 .skip{pointer-events:auto;font-size:10px;letter-spacing:.16em;text-transform:uppercase;text-decoration:none;opacity:.55;padding:8px 0 8px 12px;transition:opacity .2s;color:var(--fg)}
+.skip{transition:opacity .2s,transform .15s}
 .skip:active,.skip:hover{opacity:1}
+.skip:active{transform:scale(.94)}
 
 .hint{
   position:fixed;bottom:12vh;left:50%;transform:translateX(-50%);z-index:10;
@@ -109,8 +114,9 @@ p.body{font-size:clamp(14px,3.6vw,17px);line-height:1.6;max-width:44ch;font-fami
 .dots i.on{opacity:.95}
 
 .lang-pill{position:fixed;bottom:2.6vh;left:5vw;z-index:20;display:inline-flex;border:1.5px solid var(--fg);background:transparent}
-.lang-pill button{background:transparent;color:var(--fg);border:none;padding:5px 10px;cursor:pointer;font-family:inherit;font-size:9px;letter-spacing:.2em;text-transform:uppercase;transition:background .2s,color .2s}
+.lang-pill button{background:transparent;color:var(--fg);border:none;padding:5px 10px;cursor:pointer;font-family:inherit;font-size:9px;letter-spacing:.2em;text-transform:uppercase;transition:background .2s,color .2s,transform .12s}
 .lang-pill button.active{background:var(--fg);color:var(--bg);font-weight:700}
+.lang-pill button:active{transform:scale(.88)}
 
 @keyframes bob{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(4px)}}
 @keyframes lp{0%,100%{opacity:1}50%{opacity:.3}}
@@ -207,6 +213,7 @@ body{position:static;overflow:auto}
 
 <script>
 (() => {
+document.addEventListener('touchstart',function(){},{passive:true});
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const TOUCH = matchMedia('(hover: none)').matches;
 const TAU = Math.PI*2;

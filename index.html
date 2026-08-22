@@ -49,8 +49,10 @@ h1.display{font-size:clamp(38px,9.5vw,84px)}
 h2.display{font-size:clamp(30px,7.5vw,62px)}
 p.body{font-size:clamp(14px,3.6vw,17px);line-height:1.6;max-width:44ch;font-family:'Space Grotesk',sans-serif}
 .sub{font-size:11px;letter-spacing:.14em;opacity:.65;line-height:1.8}
-.hero-logo{width:min(56vw,250px);height:auto}
-.end-logo{width:min(30vw,130px);height:auto;opacity:.85}
+.hero-logo{width:min(64vw,300px);height:auto;transition:transform .4s cubic-bezier(.55,-.5,.7,.4),opacity .35s}
+.hero-logo.gone{transform:scale(0);opacity:0}
+.hd-left.off{visibility:hidden}
+.hd-left.pop{animation:pi .4s ease-out}
 
 /* how-it-works steps */
 #b2 .binner{margin-top:14vh}
@@ -107,6 +109,7 @@ p.body{font-size:clamp(14px,3.6vw,17px);line-height:1.6;max-width:44ch;font-fami
 @keyframes lp{0%,100%{opacity:1}50%{opacity:.3}}
 @keyframes su{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
 @keyframes ctap{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
+@keyframes pi{0%{transform:scale(0)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
 
 /* impact wobble on freshly revealed content */
 .beat.hit .binner{animation:su .45s ease-out}
@@ -129,7 +132,7 @@ body{position:static;overflow:auto}
 <canvas id="c"></canvas>
 
 <div class="hd">
-  <div class="hd-left"><img id="slogo" alt="KUTT"><span class="hd-beta">BETA</span></div>
+  <div class="hd-left off"><img id="slogo" alt="KUTT"><span class="hd-beta">BETA</span></div>
   <a class="skip" href="/app/" data-uk="в апку →" data-en="to the app →">в апку →</a>
 </div>
 
@@ -137,16 +140,14 @@ body{position:static;overflow:auto}
 
   <section class="beat by" id="b0">
     <div class="binner">
-      <div class="label" data-uk="KYIV UNITED TABLE TENNIS" data-en="KYIV UNITED TABLE TENNIS">KYIV UNITED TABLE TENNIS</div>
       <img class="hero-logo" id="hlogo" alt="KUTT">
-      <h1 class="display" data-html data-uk="Твоя гра.&lt;br&gt;Твої повтори." data-en="Your game.&lt;br&gt;Your replays.">Твоя гра.<br>Твої повтори.</h1>
     </div>
   </section>
 
   <section class="beat yb" id="b1">
     <div class="binner">
-      <h2 class="display" data-uk="Камера пише гру постійно." data-en="The camera never stops recording.">Камера пише гру постійно.</h2>
-      <p class="body" data-uk="KUTT стрімить стіл наживо і тримає останні 30 хвилин." data-en="KUTT streams the table live and keeps the last 30 minutes.">KUTT стрімить стіл наживо і тримає останні 30 хвилин.</p>
+      <h2 class="display" data-uk="Камера пише гру постійно" data-en="The camera never stops recording">Камера пише гру постійно</h2>
+      <p class="body" data-uk="KUTT стрімить стіл наживо і тримає останні 30 хвилин" data-en="KUTT streams the table live and keeps the last 30 minutes">KUTT стрімить стіл наживо і тримає останні 30 хвилин</p>
     </div>
   </section>
 
@@ -162,13 +163,13 @@ body{position:static;overflow:auto}
 
   <section class="beat yb" id="b3">
     <div class="binner">
-      <h2 class="display" data-uk="Кожен кліп — у спільній стрічці." data-en="Every clip lands in the shared feed.">Кожен кліп — у спільній стрічці.</h2>
+      <h2 class="display" data-uk="Кожен кліп — у спільній стрічці" data-en="Every clip lands in the shared feed">Кожен кліп — у спільній стрічці</h2>
     </div>
   </section>
 
   <section class="beat by" id="b4">
     <div class="binner">
-      <h1 class="display" data-uk="Зараз — безкоштовно." data-en="Free right now.">Зараз — безкоштовно.</h1>
+      <h1 class="display" data-uk="Зараз — безкоштовно" data-en="Free right now">Зараз — безкоштовно</h1>
       <div class="free-tag" data-uk="ВІДКРИТА БЕТА · БЕЗ ОБМЕЖЕНЬ" data-en="OPEN BETA · NO LIMITS">ВІДКРИТА БЕТА · БЕЗ ОБМЕЖЕНЬ</div>
       <div class="pro-tease" data-uk="PRO скоро — довші кліпи та більше" data-en="PRO soon — longer clips and more">PRO скоро — довші кліпи та більше</div>
     </div>
@@ -177,7 +178,6 @@ body{position:static;overflow:auto}
   <section class="beat yb" id="b5">
     <div class="binner">
       <a class="cta-big" href="/app/"><span class="cta-dot"></span><span data-uk="ДИВИТИСЬ НАЖИВО" data-en="WATCH LIVE">ДИВИТИСЬ НАЖИВО</span></a>
-      <img class="end-logo" id="elogo" alt="KUTT">
     </div>
   </section>
 
@@ -234,7 +234,6 @@ document.getElementById('lang-pill').addEventListener('click',e=>{
 /* ═══ logos ═══ */
 const slogo=document.getElementById('slogo');
 document.getElementById('hlogo').src=LY;
-document.getElementById('elogo').src=LB;
 slogo.src=LY;
 
 /* palette per beat: true = yellow bg */
@@ -331,6 +330,13 @@ function reveal(i,ix,iy){
   cur=i;
   if(i>maxSeen) maxSeen=i;
   setPalette(PAL[i]);
+  const hl=document.getElementById('hlogo');
+  const hdl=document.querySelector('.hd-left');
+  if(i===0){ hl.classList.remove('gone'); hdl.classList.add('off'); hdl.classList.remove('pop'); }
+  else{
+    hl.classList.add('gone');
+    if(hdl.classList.contains('off')){ hdl.classList.remove('off'); hdl.classList.add('pop'); }
+  }
   dots();
   demoBeat=(i>=1&&i<=3)?i:-1;
   demoT0=performance.now()+500;
@@ -371,6 +377,7 @@ function hit(auto,spinDir){
   ty=H*(0.38+rnd(-0.07,0.07));
   if(cur>=NB-1){ ty=H*rnd(0.30,0.46); tx=W*rnd(0.3,0.7); }
   swingT=performance.now();
+  if(cur===0) setTimeout(()=>{ if(cur===0||phase==='fly') document.getElementById('hlogo').classList.add('gone'); },260);
   hideHint();
   if(!auto){
     userHits++;

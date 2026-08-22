@@ -292,7 +292,7 @@ let sx,sy,tx,ty;         // flight start/target
 let trail=[], parts=[], ring=null;
 let swing=0, swingT=0;
 let bobT=Math.random()*10;
-let demoOn=false, demoT0=0;
+let demoBeat=-1, demoT0=0;
 
 function setPalette(yellow){
   document.body.classList.toggle('p-y',yellow);
@@ -341,8 +341,8 @@ function reveal(i,ix,iy){
   if(i>maxSeen) maxSeen=i;
   setPalette(PAL[i]);
   dots();
-  demoOn=(i===2);
-  if(demoOn) demoT0=performance.now()+500;
+  demoBeat=(i>=1&&i<=3)?i:-1;
+  demoT0=performance.now()+500;
 }
 
 /* jump to an already-seen beat (dots tap / swipe down) */
@@ -525,12 +525,81 @@ function miniScreen(x,y,w,h,a,now){
   const bp=(now/900)%2, bx=x+Math.cos(bp*Math.PI)*w*0.26, by=y+h*0.06-Math.abs(Math.sin(bp*Math.PI*2))*h*0.16;
   ctx.fillStyle='rgba('+fgColor()+',1)';
   ctx.beginPath(); ctx.arc(bx,by,Math.max(1.6,w*0.022),0,TAU); ctx.fill();
+  ctx.globalAlpha=a*(0.55+0.45*Math.sin(now/280));
   ctx.fillStyle='#ff3030';
   ctx.beginPath(); ctx.arc(x-w/2+8,y-h/2+8,2.4,0,TAU); ctx.fill();
   ctx.globalAlpha=1;
 }
+
+/* beat 1: the stream being recorded — live view + rolling 30-min buffer */
+function drawLiveDemo(now,t){
+  const cxm=W*0.5;
+  const ap=easeOut(clamp(t/800,0,1));
+  const w=clamp(W*0.40,130,190), h=w*0.68;
+  const y=H*0.175+Math.sin(now/1400)*4;
+  miniScreen(cxm,y,w*ap,h*ap,ap,now);
+  if(t>700){
+    // rolling buffer: the bright trailing window is "the last 30 min"
+    const ba=clamp((t-700)/500,0,1);
+    const bw=w*0.92, bx=cxm-bw/2, by=y+h/2+15;
+    const p=(now/7000)%1;
+    ctx.globalAlpha=0.28*ba;
+    ctx.strokeStyle='rgba('+fgColor()+',1)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(bx,by); ctx.lineTo(bx+bw,by); ctx.stroke();
+    ctx.globalAlpha=0.6*ba; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.moveTo(Math.max(bx,bx+bw*p-bw*0.35),by); ctx.lineTo(bx+bw*p,by); ctx.stroke();
+    ctx.globalAlpha=ba; ctx.fillStyle='rgba('+fgColor()+',1)';
+    ctx.beginPath(); ctx.arc(bx+bw*p,by,2.6,0,TAU); ctx.fill();
+    ctx.globalAlpha=1;
+  }
+}
+
+/* beat 3: the cut replay drops into the feed and gets liked */
+function drawFeedDemo(now,t){
+  const cxm=W*0.5;
+  const T=5200, tt=t%T;
+  const ga=easeOut(clamp(t/700,0,1));
+  const fade=tt>T-450?(T-tt)/450:1;
+  const gw=Math.min(W*0.60,300), gap=6;
+  const cw=(gw-gap)/2, chh=cw*0.66;
+  const gx=cxm-gw/2, gy=H*0.125;
+  // existing feed cards
+  const slots=[[gx+cw+gap,gy],[gx,gy+chh+gap],[gx+cw+gap,gy+chh+gap]];
+  for(const s of slots){
+    ctx.globalAlpha=0.5*ga;
+    ctx.fillStyle='rgba('+fgColor()+',0.10)';
+    rr(s[0],s[1],cw,chh,4); ctx.fill();
+    ctx.strokeStyle='rgba('+fgColor()+',0.35)'; ctx.lineWidth=1;
+    rr(s[0],s[1],cw,chh,4); ctx.stroke();
+  }
+  ctx.globalAlpha=1;
+  // your clip drops into the first slot
+  if(tt>600){
+    const dp=easeOut(clamp((tt-600)/650,0,1));
+    const sy=lerp(-chh*1.3,gy,dp), sx=gx;
+    ctx.globalAlpha=ga*fade;
+    ctx.fillStyle='rgba('+fgColor()+',0.16)';
+    rr(sx,sy,cw,chh,4); ctx.fill();
+    ctx.strokeStyle='rgba('+fgColor()+',0.95)'; ctx.lineWidth=1.6;
+    rr(sx,sy,cw,chh,4); ctx.stroke();
+    const mb=(now/700)%2;
+    ctx.fillStyle='rgba('+fgColor()+',1)';
+    ctx.beginPath();
+    ctx.arc(sx+cw/2+Math.cos(mb*Math.PI)*cw*0.28, sy+chh*0.42-Math.abs(Math.sin(mb*Math.PI*2))*chh*0.2, 1.8,0,TAU);
+    ctx.fill();
+    if(tt>1500){
+      const hp=easeOut(clamp((tt-1500)/350,0,1));
+      const hs=tt>1850&&tt<2100?1.2:1;
+      ctx.font='700 '+Math.round(12*hp*hs)+'px sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillStyle='#ff3030';
+      ctx.globalAlpha=ga*fade;
+      ctx.fillText('♥',sx+cw-10,sy+chh-9);
+    }
+    ctx.globalAlpha=1;
+  }
+}
 function drawDemo(now){
-  if(!demoOn||now<demoT0) return;
   const T=7600, t=(now-demoT0)%T;
   const ga=t>6600?1-(t-6600)/1000:1;                 // loop fade-out
   const cxm=W*0.5;
@@ -666,7 +735,12 @@ function frame(now){
     }
   }
 
-  drawDemo(now);
+  if(demoBeat>=0&&now>=demoT0){
+    const dt=now-demoT0;
+    if(demoBeat===1) drawLiveDemo(now,dt);
+    else if(demoBeat===2) drawDemo(now);
+    else drawFeedDemo(now,dt);
+  }
   drawFX(now);
   drawBall();
   drawPaddle(now);

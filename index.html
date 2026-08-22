@@ -49,8 +49,12 @@ h1.display{font-size:clamp(38px,9.5vw,84px)}
 h2.display{font-size:clamp(30px,7.5vw,62px)}
 p.body{font-size:clamp(14px,3.6vw,17px);line-height:1.6;max-width:44ch;font-family:'Space Grotesk',sans-serif}
 .sub{font-size:11px;letter-spacing:.14em;opacity:.65;line-height:1.8}
-.hero-logo{width:min(64vw,300px);height:auto;transition:transform .4s cubic-bezier(.55,-.5,.7,.4),opacity .35s}
-.hero-logo.gone{transform:scale(0);opacity:0}
+.hero-logo{width:min(58vw,270px);height:auto}
+.hero-brand{display:flex;align-items:flex-end;gap:7px;transition:transform .4s cubic-bezier(.55,-.5,.7,.4),opacity .35s}
+.hero-brand.gone{transform:scale(0);opacity:0}
+.cam-suffix{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:clamp(19px,5.6vw,28px);line-height:1;padding-bottom:7px}
+.cam-suffix .dot{color:#ff3030;font-style:normal;animation:lp 1.2s ease-in-out infinite}
+.cam-suffix.sm{font-size:9px;align-self:flex-end;padding-bottom:2px}
 .hd-left.off{visibility:hidden}
 .hd-left.pop{animation:pi .4s ease-out}
 
@@ -132,7 +136,7 @@ body{position:static;overflow:auto}
 <canvas id="c"></canvas>
 
 <div class="hd">
-  <div class="hd-left off"><img id="slogo" alt="KUTT"><span class="hd-beta">BETA</span></div>
+  <div class="hd-left off"><img id="slogo" alt="KUTT"><span class="cam-suffix sm"><i class="dot">.</i>cam</span><span class="hd-beta">BETA</span></div>
   <a class="skip" href="/app/" data-uk="в апку →" data-en="to the app →">в апку →</a>
 </div>
 
@@ -140,7 +144,7 @@ body{position:static;overflow:auto}
 
   <section class="beat by" id="b0">
     <div class="binner">
-      <img class="hero-logo" id="hlogo" alt="KUTT">
+      <div class="hero-brand"><img class="hero-logo" id="hlogo" alt="KUTT"><span class="cam-suffix"><i class="dot">.</i>cam</span></div>
     </div>
   </section>
 
@@ -330,7 +334,7 @@ function reveal(i,ix,iy){
   cur=i;
   if(i>maxSeen) maxSeen=i;
   setPalette(PAL[i]);
-  const hl=document.getElementById('hlogo');
+  const hl=document.querySelector('.hero-brand');
   const hdl=document.querySelector('.hd-left');
   if(i===0){ hl.classList.remove('gone'); hdl.classList.add('off'); hdl.classList.remove('pop'); }
   else{
@@ -377,7 +381,6 @@ function hit(auto,spinDir){
   ty=H*(0.38+rnd(-0.07,0.07));
   if(cur>=NB-1){ ty=H*rnd(0.30,0.46); tx=W*rnd(0.3,0.7); }
   swingT=performance.now();
-  if(cur===0) setTimeout(()=>{ if(cur===0||phase==='fly') document.getElementById('hlogo').classList.add('gone'); },260);
   hideHint();
   if(!auto){
     userHits++;

@@ -177,11 +177,7 @@ body{position:static;overflow:auto}
   <section class="beat by" id="b2">
     <div class="binner">
       <h2 class="display" data-uk="Твої моменти" data-en="Your moments">Твої моменти</h2>
-      <div class="steps">
-        <div class="step"><span class="n">01</span><span class="t" data-uk="Красивий розіграш" data-en="A beautiful rally">Красивий розіграш</span></div>
-        <div class="step"><span class="n">02</span><span class="t" data-uk="Зустріч із запеклим суперником" data-en="A clash with your fierce rival">Зустріч із запеклим суперником</span></div>
-        <div class="step"><span class="n">03</span><span class="t" data-uk="Запис тренування" data-en="Your training session on record">Запис тренування</span></div>
-      </div>
+      <p class="body" data-uk="Красивий розіграш, зустріч із запеклим суперником чи просто запис тренування" data-en="A beautiful rally, a clash with your fierce rival, or just a training session on record">Красивий розіграш, зустріч із запеклим суперником чи просто запис тренування</p>
     </div>
   </section>
 
@@ -788,74 +784,102 @@ function drawChannelsDemo(now,t){
   ctx.globalAlpha=1;
 }
 
-/* beat 2: use cases — rally / rival clash / training loop */
+/* beat 2: your moments — a mini match; a highlight gets caught and loved */
 function drawCasesDemo(now,t){
   const ga=easeOut(clamp(t/700,0,1));
-  const T=2400, idx=Math.floor(t/T)%3, p=(t%T)/T;
-  const a=ga*clamp(Math.min(p*6,(1-p)*6),0,1);
-  const cxm=W*0.5, cy=H*0.16, S=clamp(Math.min(W,H)*0.20,90,150);
+  const cxm=W*0.5, cy=H*0.16;
+  const w=clamp(W*0.54,180,270), h=w*0.60;
   const fg=fgColor();
-  ctx.globalAlpha=a;
-  if(idx===0){
-    const bp=(p*2)%1, dir=p<0.5?1:-1;
-    const x1=cxm-S*0.5, x2=cxm+S*0.5;
-    ctx.strokeStyle='rgba('+fg+',0.3)'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.moveTo(x1-14,cy+S*0.26); ctx.lineTo(x2+14,cy+S*0.26); ctx.stroke();
-    for(let k=1;k<=4;k++){
-      const tp=clamp(bp-k*0.07,0,1);
-      const tx=lerp(dir>0?x1:x2, dir>0?x2:x1, tp);
-      const ty=cy+S*0.18-Math.sin(tp*Math.PI)*S*0.42;
-      ctx.globalAlpha=a*Math.max(0,0.5-k*0.1);
-      ctx.fillStyle='rgba('+fg+',1)';
-      ctx.beginPath(); ctx.arc(tx,ty,4,0,TAU); ctx.fill();
-    }
-    ctx.globalAlpha=a;
-    const bx=lerp(dir>0?x1:x2, dir>0?x2:x1, bp);
-    const by=cy+S*0.18-Math.sin(bp*Math.PI)*S*0.42;
+  const P=1050, C=6*P, tc=t%C;
+  const kc=Math.floor(tc/P), bp=(tc%P)/P;
+  const momentT=tc-4*P;                       // highlight lands at start of crossing 4
+  const flash=momentT>-120&&momentT<300;
+
+  // screen frame (border flashes on the moment)
+  ctx.globalAlpha=ga;
+  ctx.fillStyle='rgba('+fg+',0.08)'; rr(cxm-w/2,cy-h/2,w,h,8); ctx.fill();
+  ctx.strokeStyle='rgba('+fg+','+(flash?1:0.7)+')'; ctx.lineWidth=flash?2.5:1.5;
+  rr(cxm-w/2,cy-h/2,w,h,8); ctx.stroke();
+  // REC dot
+  ctx.globalAlpha=ga*(0.55+0.45*Math.sin(now/280));
+  ctx.fillStyle='#ff3030';
+  ctx.beginPath(); ctx.arc(cxm-w/2+11,cy-h/2+11,2.6,0,TAU); ctx.fill();
+  ctx.globalAlpha=ga;
+
+  // table + net (side view)
+  const ty2=cy+h*0.24, tx1=cxm-w*0.36, tx2=cxm+w*0.36;
+  ctx.strokeStyle='rgba('+fg+',0.55)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(tx1,ty2); ctx.lineTo(tx2,ty2); ctx.stroke();
+  ctx.strokeStyle='rgba('+fg+',0.4)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(cxm,ty2); ctx.lineTo(cxm,ty2-h*0.14); ctx.stroke();
+
+  // ball path this crossing
+  const fromLeft=kc%2===0;
+  const x1=tx1+w*0.03, x2=tx2-w*0.03;
+  const bx=lerp(fromLeft?x1:x2, fromLeft?x2:x1, bp);
+  const by=ty2-h*0.06-Math.sin(bp*Math.PI)*h*0.34;
+  for(let k=1;k<=4;k++){
+    const tp=bp-k*0.08; if(tp<0)continue;
+    const tx=lerp(fromLeft?x1:x2, fromLeft?x2:x1, tp);
+    const tyv=ty2-h*0.06-Math.sin(tp*Math.PI)*h*0.34;
+    ctx.globalAlpha=ga*(0.45-k*0.09);
     ctx.fillStyle='rgba('+fg+',1)';
-    ctx.beginPath(); ctx.arc(bx,by,6,0,TAU); ctx.fill();
-    if(bp<0.12||bp>0.88){
-      const px2=bp<0.12?(dir>0?x1:x2):(dir>0?x2:x1);
-      ctx.strokeStyle='rgba('+fg+',0.8)'; ctx.lineWidth=1.5;
-      for(let k2=0;k2<5;k2++){
-        const an=k2/5*TAU;
-        ctx.beginPath();
-        ctx.moveTo(px2+Math.cos(an)*7,cy+S*0.2+Math.sin(an)*7);
-        ctx.lineTo(px2+Math.cos(an)*12,cy+S*0.2+Math.sin(an)*12);
-        ctx.stroke();
-      }
+    ctx.beginPath(); ctx.arc(tx,tyv,3.2,0,TAU); ctx.fill();
+  }
+  ctx.globalAlpha=ga;
+  ctx.fillStyle='rgba('+fg+',1)';
+  ctx.beginPath(); ctx.arc(bx,by,4.5,0,TAU); ctx.fill();
+
+  // paddles at both ends, swinging on their hits
+  for(const side of [0,1]){                    // 0=left, 1=right
+    const px=side?tx2+w*0.045:tx1-w*0.045;
+    const hitting=(fromLeft?bp:1-bp);
+    const near=side?(hitting>0.86):(hitting<0.14);
+    const swing2=near?Math.sin(Math.min(1,(side?(bp-0.86):(0.14-bp))/0.14*(fromLeft===Boolean(side)?1:1))*Math.PI)*0.5:0;
+    ctx.save();
+    ctx.translate(px,ty2-h*0.10);
+    ctx.rotate((side?1:-1)*(0.35-swing2));
+    ctx.fillStyle='rgba('+fg+',0.9)';
+    ctx.beginPath(); ctx.ellipse(0,-h*0.075,w*0.045,h*0.085,0,0,TAU); ctx.fill();
+    ctx.fillStyle='rgba('+fg+',0.55)';
+    ctx.fillRect(-w*0.014,0,w*0.028,h*0.08);
+    ctx.restore();
+  }
+
+  // the moment: star burst where it lands
+  if(flash){
+    const sx2=kc>=4?(4%2===0?x2:x1):bx;
+    const sp2=clamp((momentT+120)/420,0,1);
+    ctx.strokeStyle='rgba('+fg+','+(1-sp2).toFixed(2)+')'; ctx.lineWidth=2;
+    for(let k2=0;k2<6;k2++){
+      const an=k2/6*TAU+0.4;
+      const r1=5+sp2*10, r2=10+sp2*18;
+      ctx.beginPath();
+      ctx.moveTo(x2+Math.cos(an)*r1,ty2-h*0.1+Math.sin(an)*r1);
+      ctx.lineTo(x2+Math.cos(an)*r2,ty2-h*0.1+Math.sin(an)*r2);
+      ctx.stroke();
     }
-  }else if(idx===1){
-    const lean=Math.sin(p*Math.PI)*0.5;
-    for(const dir of [-1,1]){
-      ctx.save();
-      ctx.translate(cxm+dir*S*0.42, cy+S*0.05);
-      ctx.rotate(dir*(-0.5+lean));
-      ctx.fillStyle='rgba('+fg+',0.9)';
-      ctx.beginPath(); ctx.ellipse(0,-S*0.16,S*0.13,S*0.17,0,0,TAU); ctx.fill();
-      ctx.fillStyle='rgba('+fg+',0.55)';
-      ctx.fillRect(-S*0.035,0,S*0.07,S*0.16);
-      ctx.restore();
-    }
-    if(p>0.42&&p<0.62){
-      const sp=(p-0.42)/0.2;
-      ctx.strokeStyle='rgba('+fg+','+(1-sp).toFixed(2)+')'; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.arc(cxm,cy-S*0.05,6+sp*22,0,TAU); ctx.stroke();
-    }
-  }else{
-    ctx.strokeStyle='rgba('+fg+',0.35)'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.arc(cxm,cy,S*0.34,p*TAU,p*TAU+TAU*0.75); ctx.stroke();
-    const aa=p*TAU+TAU*0.75;
-    ctx.fillStyle='rgba('+fg+',0.5)';
-    ctx.beginPath(); ctx.arc(cxm+Math.cos(aa)*S*0.34,cy+Math.sin(aa)*S*0.34,3,0,TAU); ctx.fill();
-    const mb=(now/600)%2;
+  }
+
+  // caught: a little clip card pops above the screen with a heart
+  if(momentT>250){
+    const cp=easeOut(clamp((momentT-250)/450,0,1));
+    const fade=momentT>1900?clamp(1-(momentT-1900)/500,0,1):1;
+    const cw2=w*0.30, ch2=cw2*0.62;
+    const ccx=cxm+w*0.28, ccy=cy-h/2-14-cp*16;
+    ctx.globalAlpha=ga*cp*fade;
+    ctx.fillStyle='rgba('+fg+',0.14)'; rr(ccx-cw2/2,ccy-ch2/2,cw2,ch2,5); ctx.fill();
+    ctx.strokeStyle='rgba('+fg+',0.95)'; ctx.lineWidth=1.6; rr(ccx-cw2/2,ccy-ch2/2,cw2,ch2,5); ctx.stroke();
     ctx.fillStyle='rgba('+fg+',1)';
-    ctx.beginPath();
-    ctx.arc(cxm+Math.cos(mb*Math.PI)*S*0.14, cy+S*0.06-Math.abs(Math.sin(mb*Math.PI*2))*S*0.12, 4.5,0,TAU);
-    ctx.fill();
-    ctx.globalAlpha=a*(0.55+0.45*Math.sin(now/280));
-    ctx.fillStyle='#ff3030';
-    ctx.beginPath(); ctx.arc(cxm+S*0.34,cy-S*0.34,4,0,TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(ccx-cw2*0.1,ccy-ch2*0.05,2.4,0,TAU); ctx.fill();
+    if(momentT>650){
+      const hp=easeOut(clamp((momentT-650)/300,0,1));
+      ctx.font='700 '+Math.round(11*hp)+'px sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillStyle='#ff3030';
+      ctx.fillText('\u2665',ccx+cw2/2-7,ccy+ch2/2-7);
+    }
+    ctx.globalAlpha=1;
   }
   ctx.globalAlpha=1;
 }

@@ -47,7 +47,8 @@ a{color:inherit}
 }
 .beat.by{background:var(--b);color:var(--y)}
 .beat.yb{background:var(--y);color:var(--b)}
-.binner{max-width:640px;display:flex;flex-direction:column;align-items:center;gap:22px}
+.b-top{position:absolute;left:6vw;right:6vw;bottom:51dvh;display:flex;flex-direction:column;align-items:center;gap:18px}
+.b-low{position:absolute;left:8vw;right:8vw;top:55dvh;display:flex;flex-direction:column;align-items:center;gap:12px}
 .label{font-size:10px;letter-spacing:.22em;text-transform:uppercase;opacity:.55;line-height:1.6}
 h1.display,h2.display{
   font-family:'Unbounded',sans-serif;font-weight:700;
@@ -70,7 +71,6 @@ p.body{font-size:clamp(12px,3.2vw,15px);line-height:1.7;max-width:46ch;font-fami
 .hd-left.pop{animation:pi .4s ease-out}
 
 /* how-it-works steps */
-#b1 .binner,#b2 .binner,#b3 .binner,#b4 .binner,#b5 .binner{margin-top:11vh}
 .steps{display:flex;flex-direction:column;gap:18px;text-align:left;margin-top:6px}
 .step{display:flex;gap:16px;align-items:baseline}
 .step .n{font-size:11px;letter-spacing:.2em;opacity:.5;flex-shrink:0}
@@ -91,6 +91,7 @@ p.body{font-size:clamp(12px,3.2vw,15px);line-height:1.7;max-width:46ch;font-fami
   transition:transform .15s;
 }
 .cta-big:active{animation:none;transform:scale(.93)}
+.cta-big.struck{animation:pi .35s ease-out}
 .cta-dot{width:9px;height:9px;border-radius:50%;background:#ff3030;animation:lp 1.2s ease-in-out infinite}
 
 /* ═══ canvas scene ═══ */
@@ -132,18 +133,20 @@ p.body{font-size:clamp(12px,3.2vw,15px);line-height:1.7;max-width:46ch;font-fami
 @keyframes pi{0%{transform:scale(0)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
 
 /* impact wobble on freshly revealed content */
-.beat.hit .binner{animation:su .45s ease-out}
+.beat.hit .b-top,.beat.hit .b-low{animation:su .45s ease-out}
 
 /* ═══ static fallback (reduced motion / no JS) ═══ */
 body.rm{position:static;overflow:auto;touch-action:auto;user-select:text;-webkit-user-select:text}
 body.rm #stage{position:static}
-body.rm .beat{position:relative;inset:auto;visibility:visible;clip-path:none!important;min-height:100dvh}
+body.rm .beat{position:relative;inset:auto;visibility:visible;clip-path:none!important;min-height:100dvh;flex-direction:column;justify-content:center;gap:20px}
+body.rm .b-top,body.rm .b-low{position:static}
 body.rm #c,body.rm .hint,body.rm .dots{display:none}
 </style>
 <noscript><style>
 body{position:static;overflow:auto}
 #stage{position:static}
-.beat{position:relative;inset:auto;visibility:visible;min-height:100dvh}
+.beat{position:relative;inset:auto;visibility:visible;min-height:100dvh;flex-direction:column;justify-content:center;gap:20px}
+.b-top,.b-low{position:static}
 #c,.hint,.dots,.lang-pill{display:none}
 </style></noscript>
 </head>
@@ -159,51 +162,59 @@ body{position:static;overflow:auto}
 <div id="stage">
 
   <section class="beat by" id="b0">
-    <div class="binner">
+    <div class="b-top">
       <div class="hero-brand"><img class="hero-logo" id="hlogo" alt="KUTT"><span class="cam-suffix"><i class="dot">.</i>cam</span></div>
+    </div>
+    <div class="b-low">
       <div class="hero-sub" id="hsub" data-uk="повтори наживо для всіх" data-en="live replays made easy">повтори наживо для всіх</div>
     </div>
   </section>
 
   <section class="beat yb" id="b1">
-    <div class="binner">
+    <div class="b-top">
       <h2 class="display" data-uk="Камера пише гру постійно" data-en="The camera never stops recording">Камера пише гру постійно</h2>
+    </div>
+    <div class="b-low">
       <p class="body" data-uk="KUTT стрімить стіл наживо, а останні 30 хвилин завжди можна відмотати" data-en="KUTT streams the table live and keeps the last 30 minutes">KUTT стрімить стіл наживо, а останні 30 хвилин завжди можна відмотати</p>
     </div>
   </section>
 
   <section class="beat by" id="b2">
-    <div class="binner">
+    <div class="b-top">
       <h2 class="display" data-uk="Твої моменти" data-en="Your moments">Твої моменти</h2>
+    </div>
+    <div class="b-low">
       <p class="body" data-uk="Красивий розіграш, зустріч із запеклим суперником чи просто запис тренування" data-en="A beautiful rally, a clash with your fierce rival, or just a training session on record">Красивий розіграш, зустріч із запеклим суперником чи просто запис тренування</p>
     </div>
   </section>
 
   <section class="beat yb" id="b3">
-    <div class="binner">
+    <div class="b-low">
       <div class="steps">
         <div class="step"><span class="n">01</span><span class="t" data-uk="Грай — камера стрімить" data-en="Play — the camera streams">Грай — камера стрімить</span></div>
         <div class="step"><span class="n">02</span><span class="t" data-uk="Відкрий REPLAY STATION, знайди момент" data-en="Open REPLAY STATION, find your moment">Відкрий REPLAY STATION, знайди момент</span></div>
-        <div class="step"><span class="n">03</span><span class="t" data-uk="KUTT IT — збережи й шерни" data-en="KUTT IT — save and share">KUTT IT — збережи й шерни</span></div>
+        <div class="step"><span class="n">03</span><span class="t" data-uk="KUTT IT — зберігай собі і відправляй друзям" data-en="KUTT IT — save and share">KUTT IT — зберігай собі і відправляй друзям</span></div>
       </div>
     </div>
   </section>
 
   <section class="beat by" id="b4">
-    <div class="binner">
-      <h2 class="display" data-uk="Кожен кліп падає у спільну стрічку" data-en="Every clip lands in the shared feed">Кожен кліп падає у спільну стрічку</h2>
+    <div class="b-top">
+      <h2 class="display" data-uk="Кожен кліп потрапляє у спільну стрічку" data-en="Every clip lands in the shared feed">Кожен кліп потрапляє у спільну стрічку</h2>
     </div>
   </section>
 
   <section class="beat yb" id="b5">
-    <div class="binner">
+    <div class="b-top">
       <h2 class="display" data-uk="Скоро — там, де граєш ти" data-en="Soon — wherever you play">Скоро — там, де граєш ти</h2>
     </div>
   </section>
 
   <section class="beat by" id="b6">
-    <div class="binner">
+    <div class="b-top">
       <h1 class="display" data-uk="Зараз — безкоштовно" data-en="Free right now">Зараз — безкоштовно</h1>
+    </div>
+    <div class="b-low">
       <div class="sub" data-uk="ВІДКРИТА БЕТА · БЕЗ ОБМЕЖЕНЬ" data-en="OPEN BETA · NO LIMITS">ВІДКРИТА БЕТА · БЕЗ ОБМЕЖЕНЬ</div>
       <a class="beta-club" href="https://www.instagram.com/kutt.kyiv?igsi=MTJrNjRyZmh3MTFieQ==" target="_blank" rel="noopener" data-uk="в клубі KUTT на Кудрявці ↗" data-en="at KUTT club on Kudriavka ↗">в клубі KUTT на Кудрявці ↗</a>
       <div class="sub pro-line" data-uk="PRO скоро — одна підписка на всі канали" data-en="PRO soon — one subscription for all channels">PRO скоро — одна підписка на всі канали</div>
@@ -211,7 +222,7 @@ body{position:static;overflow:auto}
   </section>
 
   <section class="beat yb" id="b7">
-    <div class="binner">
+    <div class="b-top">
       <a class="cta-big" href="/app/"><span class="cta-dot"></span><span data-uk="ЗАХОДЬ" data-en="ENTER">ЗАХОДЬ</span></a>
     </div>
   </section>
@@ -319,7 +330,7 @@ let trail=[], parts=[], ring=null;
 let swing=0, swingT=0;
 let bobT=Math.random()*10;
 let demoBeat=-1, demoT0=0;
-let subShown=false;
+let subShown=false, entering=false;
 
 function setPalette(yellow){
   document.body.classList.toggle('p-y',yellow);
@@ -413,6 +424,10 @@ function hit(auto,spinDir){
   tx=W*(0.5+rnd(-0.11,0.11)+(spinDir||0)*0.13);
   ty=H*(0.38+rnd(-0.07,0.07));
   if(cur>=NB-1){ ty=H*rnd(0.30,0.46); tx=W*rnd(0.3,0.7); }
+  if(cur===NB-1){
+    const eb=document.querySelector('#b7 .cta-big');
+    if(eb){ const r=eb.getBoundingClientRect(); tx=r.left+r.width/2; ty=r.top+r.height/2; }
+  }
   swingT=performance.now();
   hideHint();
   if(!auto){
@@ -453,7 +468,7 @@ function drawTable(){
   ctx.moveTo(W*0.5,H+2); ctx.lineTo(vpX,vpY+H*0.09);
   ctx.stroke();
   // net: posts, sagging top cord, faint mesh
-  const ny=H*0.565, nw=W*0.70, nh=clamp(H*0.024,14,24);
+  const ny=H*0.52, nw=W*0.70, nh=clamp(H*0.024,14,24);
   const nx1=W*0.5-nw/2, nx2=W*0.5+nw/2, nfg=fgColor();
   ctx.strokeStyle='rgba('+nfg+',0.10)'; ctx.lineWidth=1;
   ctx.beginPath();
@@ -901,6 +916,12 @@ function frame(now){
       impactFX(ball.x,ball.y);
       if(cur===0&&!subShown){ subShown=true; document.getElementById('hsub').classList.add('show'); }
       else if(cur<NB-1) reveal(cur+1,ball.x,ball.y);
+      else if(!entering){
+        entering=true;
+        const eb=document.querySelector('#b7 .cta-big');
+        if(eb) eb.classList.add('struck');
+        setTimeout(()=>{ window.location.href='/app/'; },380);
+      }
       phase='return'; t0=now;
       sx=ball.x; sy=ball.y;
     }

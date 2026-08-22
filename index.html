@@ -787,7 +787,7 @@ function drawChannelsDemo(now,t){
 /* beat 2: your moments — a mini match; a highlight gets caught and loved */
 function drawCasesDemo(now,t){
   const ga=easeOut(clamp(t/700,0,1));
-  const cxm=W*0.5, cy=H*0.16;
+  const cxm=W*0.5, cy=H*0.205;
   const w=clamp(W*0.54,180,270), h=w*0.60;
   const fg=fgColor();
   const P=1050, C=6*P, tc=t%C;
@@ -837,7 +837,7 @@ function drawCasesDemo(now,t){
     const near=side?(hitting>0.86):(hitting<0.14);
     const swing2=near?Math.sin(Math.min(1,(side?(bp-0.86):(0.14-bp))/0.14*(fromLeft===Boolean(side)?1:1))*Math.PI)*0.5:0;
     ctx.save();
-    ctx.translate(px,ty2-h*0.10);
+    ctx.translate(px,ty2+h*0.015);
     ctx.rotate((side?1:-1)*(0.35-swing2));
     ctx.fillStyle='rgba('+fg+',0.9)';
     ctx.beginPath(); ctx.ellipse(0,-h*0.075,w*0.045,h*0.085,0,0,TAU); ctx.fill();
@@ -855,8 +855,8 @@ function drawCasesDemo(now,t){
       const an=k2/6*TAU+0.4;
       const r1=5+sp2*10, r2=10+sp2*18;
       ctx.beginPath();
-      ctx.moveTo(x2+Math.cos(an)*r1,ty2-h*0.1+Math.sin(an)*r1);
-      ctx.lineTo(x2+Math.cos(an)*r2,ty2-h*0.1+Math.sin(an)*r2);
+      ctx.moveTo(x2+Math.cos(an)*r1,ty2-h*0.06+Math.sin(an)*r1);
+      ctx.lineTo(x2+Math.cos(an)*r2,ty2-h*0.06+Math.sin(an)*r2);
       ctx.stroke();
     }
   }

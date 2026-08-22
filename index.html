@@ -446,14 +446,28 @@ function drawTable(){
   ctx.moveTo(W*1.38,H+2); ctx.lineTo(vpX+W*0.19,vpY+H*0.09);
   ctx.moveTo(W*0.5,H+2); ctx.lineTo(vpX,vpY+H*0.09);
   ctx.stroke();
-  // net line
-  const ny=H*0.565, nw=W*0.70;
-  ctx.strokeStyle='rgba('+fgColor()+',0.22)';
+  // net: posts, sagging top cord, faint mesh
+  const ny=H*0.565, nw=W*0.70, nh=clamp(H*0.024,14,24);
+  const nx1=W*0.5-nw/2, nx2=W*0.5+nw/2, nfg=fgColor();
+  ctx.strokeStyle='rgba('+nfg+',0.10)'; ctx.lineWidth=1;
   ctx.beginPath();
-  ctx.moveTo(W*0.5-nw/2,ny); ctx.lineTo(W*0.5+nw/2,ny);
-  ctx.moveTo(W*0.5-nw/2,ny-7); ctx.lineTo(W*0.5-nw/2,ny+4);
-  ctx.moveTo(W*0.5+nw/2,ny-7); ctx.lineTo(W*0.5+nw/2,ny+4);
+  const nstep=Math.max(10,nw/46);
+  for(let x=nx1+nstep;x<nx2;x+=nstep){ ctx.moveTo(x,ny); ctx.lineTo(x,ny-nh+2); }
+  ctx.moveTo(nx1,ny-nh*0.5); ctx.lineTo(nx2,ny-nh*0.5);
   ctx.stroke();
+  ctx.strokeStyle='rgba('+nfg+',0.32)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(nx1,ny-nh); ctx.quadraticCurveTo(W*0.5,ny-nh+3,nx2,ny-nh); ctx.stroke();
+  ctx.strokeStyle='rgba('+nfg+',0.18)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(nx1,ny); ctx.lineTo(nx2,ny); ctx.stroke();
+  ctx.strokeStyle='rgba('+nfg+',0.35)'; ctx.lineWidth=2.5;
+  ctx.beginPath();
+  ctx.moveTo(nx1-6,ny+3); ctx.lineTo(nx1-6,ny-nh-2);
+  ctx.moveTo(nx2+6,ny+3); ctx.lineTo(nx2+6,ny-nh-2);
+  ctx.stroke();
+  ctx.fillStyle='rgba('+nfg+',0.35)';
+  ctx.beginPath(); ctx.arc(nx1-6,ny-nh-3,2.2,0,TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(nx2+6,ny-nh-3,2.2,0,TAU); ctx.fill();
+  ctx.lineWidth=1.5;
   // far wall base
   ctx.strokeStyle='rgba('+fgColor()+',0.08)';
   ctx.beginPath();

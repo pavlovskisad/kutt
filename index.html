@@ -453,7 +453,7 @@ function drawTable(){
   ctx.moveTo(W*0.5,H+2); ctx.lineTo(vpX,vpY+H*0.09);
   ctx.stroke();
   // net: posts, sagging top cord, faint mesh
-  const ny=H*0.64, nw=W*0.70, nh=clamp(H*0.024,14,24);
+  const ny=H*0.565, nw=W*0.70, nh=clamp(H*0.024,14,24);
   const nx1=W*0.5-nw/2, nx2=W*0.5+nw/2, nfg=fgColor();
   ctx.strokeStyle='rgba('+nfg+',0.10)'; ctx.lineWidth=1;
   ctx.beginPath();
@@ -584,7 +584,7 @@ function drawLiveDemo(now,t){
   const cxm=W*0.5;
   const ap=easeOut(clamp(t/800,0,1));
   const w=clamp(W*0.40,130,190), h=w*0.68;
-  const y=H*0.175+Math.sin(now/1400)*4;
+  const y=H*0.235+Math.sin(now/1400)*4;
   miniScreen(cxm,y,w*ap,h*ap,ap,now);
   if(t>700){
     // rolling buffer: the bright trailing window is "the last 30 min"

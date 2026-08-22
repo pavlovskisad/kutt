@@ -9,6 +9,7 @@ cp /tmp/kutt-deploy/index.html /var/www/html/index.html          # onboarding la
 mkdir -p /var/www/html/app
 cp /tmp/kutt-deploy/app.html /var/www/html/app/index.html        # the app, served at /app/
 cp /tmp/kutt-deploy/overview.html /var/www/html/overview.html
+cp /tmp/kutt-deploy/og.png /var/www/html/og.png
 echo "frontend installed"
 
 if ! cmp -s /tmp/kutt-deploy/server.js /opt/kutt/api/server.js; then

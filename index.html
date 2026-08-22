@@ -71,10 +71,10 @@ p.body{font-size:clamp(12px,3.2vw,15px);line-height:1.7;max-width:46ch;font-fami
 .hd-left.pop{animation:pi .4s ease-out}
 
 /* how-it-works steps */
-.steps{display:flex;flex-direction:column;gap:18px;text-align:left;margin-top:6px}
+.steps{display:flex;flex-direction:column;gap:10px;text-align:left}
 .step{display:flex;gap:16px;align-items:baseline}
 .step .n{font-size:11px;letter-spacing:.2em;opacity:.5;flex-shrink:0}
-.step .t{font-family:'Unbounded',sans-serif;font-size:clamp(12px,3.3vw,16px);font-weight:600;line-height:1.45}
+.step .t{font-family:'Unbounded',sans-serif;font-size:clamp(11px,3vw,14px);font-weight:600;line-height:1.4}
 
 /* pricing */
 .beta-club{font-family:inherit;font-size:12px;letter-spacing:.14em;color:inherit;text-decoration:underline;text-underline-offset:3px;opacity:.85;transition:transform .12s;display:inline-block}
@@ -310,7 +310,7 @@ let rNear,rFar,idleX,idleY,vpX,vpY;
 function sizes(){
   rNear=clamp(Math.min(W,H)*0.055,20,38);
   rFar=rNear*0.22;
-  idleX=W*0.5; idleY=H*0.74;
+  idleX=W*0.5; idleY=H*0.755;
   vpX=W*0.5; vpY=H*0.34;
 }
 window.addEventListener('resize',resize);
@@ -667,8 +667,8 @@ function drawDemo(now){
   const ga=t>6600?1-(t-6600)/1000:1;                 // loop fade-out
   const cxm=W*0.5;
   const scrW=clamp(W*0.30,104,150), scrH=scrW*0.70;
-  const startY=H*0.245;
-  const stripW=Math.min(W*0.78,420), stripH=clamp(H*0.042,24,36), stripY=H*0.115;
+  const startY=H*0.285;
+  const stripW=Math.min(W*0.78,420), stripH=clamp(H*0.042,24,36), stripY=H*0.15;
   const n=7, gap=3, fw=(stripW-gap*(n-1))/n, stripX=cxm-stripW/2;
   const segX=stripX+2*(fw+gap), segW=fw*3+gap*2;    // frames 2..4
 

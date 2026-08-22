@@ -69,7 +69,8 @@ p.body{font-size:clamp(12px,3.2vw,15px);line-height:1.7;max-width:46ch;font-fami
 .hd-left.pop{animation:pi .4s ease-out}
 
 /* how-it-works steps */
-#b2 .binner{margin-top:14vh}
+#b3 .binner{margin-top:14vh}
+#b2 .binner{margin-top:12vh}
 .steps{display:flex;flex-direction:column;gap:18px;text-align:left;margin-top:6px}
 .step{display:flex;gap:16px;align-items:baseline}
 .step .n{font-size:11px;letter-spacing:.2em;opacity:.5;flex-shrink:0}
@@ -84,7 +85,7 @@ p.body{font-size:clamp(12px,3.2vw,15px);line-height:1.7;max-width:46ch;font-fami
 /* CTA */
 .cta-big{
   display:inline-flex;align-items:center;gap:12px;
-  background:var(--y);color:var(--b);
+  background:var(--b);color:var(--y);
   font-family:'Unbounded',sans-serif;font-weight:700;font-size:clamp(15px,4.2vw,20px);
   letter-spacing:.04em;text-decoration:none;
   padding:18px 34px;border-radius:14px;
@@ -175,6 +176,17 @@ body{position:static;overflow:auto}
 
   <section class="beat by" id="b2">
     <div class="binner">
+      <h2 class="display" data-uk="Твої моменти" data-en="Your moments">Твої моменти</h2>
+      <div class="steps">
+        <div class="step"><span class="n">01</span><span class="t" data-uk="Красивий розіграш" data-en="A beautiful rally">Красивий розіграш</span></div>
+        <div class="step"><span class="n">02</span><span class="t" data-uk="Зустріч із запеклим суперником" data-en="A clash with your fierce rival">Зустріч із запеклим суперником</span></div>
+        <div class="step"><span class="n">03</span><span class="t" data-uk="Запис тренування" data-en="Your training session on record">Запис тренування</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="beat yb" id="b3">
+    <div class="binner">
       <div class="steps">
         <div class="step"><span class="n">01</span><span class="t" data-uk="Грай — камера стрімить" data-en="Play — the camera streams">Грай — камера стрімить</span></div>
         <div class="step"><span class="n">02</span><span class="t" data-uk="Відкрий REPLAY STATION, знайди момент" data-en="Open REPLAY STATION, find your moment">Відкрий REPLAY STATION, знайди момент</span></div>
@@ -183,19 +195,19 @@ body{position:static;overflow:auto}
     </div>
   </section>
 
-  <section class="beat yb" id="b3">
+  <section class="beat by" id="b4">
     <div class="binner">
       <h2 class="display" data-uk="Кожен кліп — у спільній стрічці" data-en="Every clip lands in the shared feed">Кожен кліп — у спільній стрічці</h2>
     </div>
   </section>
 
-  <section class="beat by" id="b4">
+  <section class="beat yb" id="b5">
     <div class="binner">
       <h2 class="display" data-uk="Скоро — там де граєш ти" data-en="Soon — wherever you play">Скоро — там де граєш ти</h2>
     </div>
   </section>
 
-  <section class="beat yb" id="b5">
+  <section class="beat by" id="b6">
     <div class="binner">
       <h1 class="display" data-uk="Зараз — безкоштовно" data-en="Free right now">Зараз — безкоштовно</h1>
       <div class="free-tag" data-uk="ВІДКРИТА БЕТА · БЕЗ ОБМЕЖЕНЬ" data-en="OPEN BETA · NO LIMITS">ВІДКРИТА БЕТА · БЕЗ ОБМЕЖЕНЬ</div>
@@ -204,7 +216,7 @@ body{position:static;overflow:auto}
     </div>
   </section>
 
-  <section class="beat by" id="b6">
+  <section class="beat yb" id="b7">
     <div class="binner">
       <a class="cta-big" href="/app/"><span class="cta-dot"></span><span data-uk="ЗАХОДЬ" data-en="ENTER">ЗАХОДЬ</span></a>
     </div>
@@ -213,7 +225,7 @@ body{position:static;overflow:auto}
 </div>
 
 <div class="hint" id="hint"></div>
-<div class="dots" id="dots"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+<div class="dots" id="dots"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
 <div class="lang-pill" id="lang-pill">
   <button data-lang="uk" class="active">UA</button>
   <button data-lang="en">EN</button>
@@ -267,8 +279,8 @@ document.getElementById('hlogo').src=LY;
 slogo.src=LY;
 
 /* palette per beat: true = yellow bg */
-const PAL=[false,true,false,true,false,true,false];
-const NB=7;
+const PAL=[false,true,false,true,false,true,false,true];
+const NB=8;
 
 /* ═══ static fallback ═══ */
 if(RM){
@@ -369,7 +381,7 @@ function reveal(i,ix,iy){
     if(hdl.classList.contains('off')){ hdl.classList.remove('off'); hdl.classList.add('pop'); }
   }
   dots();
-  demoBeat=(i>=1&&i<=4)?i:-1;
+  demoBeat=(i>=1&&i<=5)?i:-1;
   demoT0=performance.now()+500;
 }
 
@@ -776,6 +788,78 @@ function drawChannelsDemo(now,t){
   ctx.globalAlpha=1;
 }
 
+/* beat 2: use cases — rally / rival clash / training loop */
+function drawCasesDemo(now,t){
+  const ga=easeOut(clamp(t/700,0,1));
+  const T=2400, idx=Math.floor(t/T)%3, p=(t%T)/T;
+  const a=ga*clamp(Math.min(p*6,(1-p)*6),0,1);
+  const cxm=W*0.5, cy=H*0.16, S=clamp(Math.min(W,H)*0.20,90,150);
+  const fg=fgColor();
+  ctx.globalAlpha=a;
+  if(idx===0){
+    const bp=(p*2)%1, dir=p<0.5?1:-1;
+    const x1=cxm-S*0.5, x2=cxm+S*0.5;
+    ctx.strokeStyle='rgba('+fg+',0.3)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(x1-14,cy+S*0.26); ctx.lineTo(x2+14,cy+S*0.26); ctx.stroke();
+    for(let k=1;k<=4;k++){
+      const tp=clamp(bp-k*0.07,0,1);
+      const tx=lerp(dir>0?x1:x2, dir>0?x2:x1, tp);
+      const ty=cy+S*0.18-Math.sin(tp*Math.PI)*S*0.42;
+      ctx.globalAlpha=a*Math.max(0,0.5-k*0.1);
+      ctx.fillStyle='rgba('+fg+',1)';
+      ctx.beginPath(); ctx.arc(tx,ty,4,0,TAU); ctx.fill();
+    }
+    ctx.globalAlpha=a;
+    const bx=lerp(dir>0?x1:x2, dir>0?x2:x1, bp);
+    const by=cy+S*0.18-Math.sin(bp*Math.PI)*S*0.42;
+    ctx.fillStyle='rgba('+fg+',1)';
+    ctx.beginPath(); ctx.arc(bx,by,6,0,TAU); ctx.fill();
+    if(bp<0.12||bp>0.88){
+      const px2=bp<0.12?(dir>0?x1:x2):(dir>0?x2:x1);
+      ctx.strokeStyle='rgba('+fg+',0.8)'; ctx.lineWidth=1.5;
+      for(let k2=0;k2<5;k2++){
+        const an=k2/5*TAU;
+        ctx.beginPath();
+        ctx.moveTo(px2+Math.cos(an)*7,cy+S*0.2+Math.sin(an)*7);
+        ctx.lineTo(px2+Math.cos(an)*12,cy+S*0.2+Math.sin(an)*12);
+        ctx.stroke();
+      }
+    }
+  }else if(idx===1){
+    const lean=Math.sin(p*Math.PI)*0.5;
+    for(const dir of [-1,1]){
+      ctx.save();
+      ctx.translate(cxm+dir*S*0.42, cy+S*0.05);
+      ctx.rotate(dir*(-0.5+lean));
+      ctx.fillStyle='rgba('+fg+',0.9)';
+      ctx.beginPath(); ctx.ellipse(0,-S*0.16,S*0.13,S*0.17,0,0,TAU); ctx.fill();
+      ctx.fillStyle='rgba('+fg+',0.55)';
+      ctx.fillRect(-S*0.035,0,S*0.07,S*0.16);
+      ctx.restore();
+    }
+    if(p>0.42&&p<0.62){
+      const sp=(p-0.42)/0.2;
+      ctx.strokeStyle='rgba('+fg+','+(1-sp).toFixed(2)+')'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(cxm,cy-S*0.05,6+sp*22,0,TAU); ctx.stroke();
+    }
+  }else{
+    ctx.strokeStyle='rgba('+fg+',0.35)'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(cxm,cy,S*0.34,p*TAU,p*TAU+TAU*0.75); ctx.stroke();
+    const aa=p*TAU+TAU*0.75;
+    ctx.fillStyle='rgba('+fg+',0.5)';
+    ctx.beginPath(); ctx.arc(cxm+Math.cos(aa)*S*0.34,cy+Math.sin(aa)*S*0.34,3,0,TAU); ctx.fill();
+    const mb=(now/600)%2;
+    ctx.fillStyle='rgba('+fg+',1)';
+    ctx.beginPath();
+    ctx.arc(cxm+Math.cos(mb*Math.PI)*S*0.14, cy+S*0.06-Math.abs(Math.sin(mb*Math.PI*2))*S*0.12, 4.5,0,TAU);
+    ctx.fill();
+    ctx.globalAlpha=a*(0.55+0.45*Math.sin(now/280));
+    ctx.fillStyle='#ff3030';
+    ctx.beginPath(); ctx.arc(cxm+S*0.34,cy-S*0.34,4,0,TAU); ctx.fill();
+  }
+  ctx.globalAlpha=1;
+}
+
 /* ═══ main loop ═══ */
 function frame(now){
   ctx.clearRect(0,0,W,H);
@@ -818,8 +902,9 @@ function frame(now){
   if(demoBeat>=0&&now>=demoT0){
     const dt=now-demoT0;
     if(demoBeat===1) drawLiveDemo(now,dt);
-    else if(demoBeat===2) drawDemo(now);
-    else if(demoBeat===3) drawFeedDemo(now,dt);
+    else if(demoBeat===2) drawCasesDemo(now,dt);
+    else if(demoBeat===3) drawDemo(now);
+    else if(demoBeat===4) drawFeedDemo(now,dt);
     else drawChannelsDemo(now,dt);
   }
   drawFX(now);

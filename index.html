@@ -52,6 +52,8 @@ p.body{font-size:clamp(14px,3.6vw,17px);line-height:1.6;max-width:44ch;font-fami
 .hero-logo{width:min(42vw,195px);height:auto}
 .hero-brand{display:flex;align-items:flex-end;gap:7px;transition:transform .4s cubic-bezier(.55,-.5,.7,.4),opacity .35s}
 .hero-brand.gone{transform:scale(0);opacity:0}
+.hero-sub{visibility:hidden;font-family:'Space Grotesk',sans-serif;font-weight:600;font-style:italic;font-size:clamp(17px,4.8vw,24px);letter-spacing:.01em}
+.hero-sub.show{visibility:visible;animation:su .45s ease-out}
 .cam-suffix{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:clamp(34px,10vw,48px);line-height:1;margin-left:-16px;transform:translateY(.14em)}
 .cam-suffix .dot{color:#ff3030;font-style:normal;animation:lp 1.2s ease-in-out infinite}
 .cam-suffix.sm{font-size:18px;align-self:flex-end;margin-left:-10px;transform:translateY(.15em)}
@@ -67,6 +69,7 @@ p.body{font-size:clamp(14px,3.6vw,17px);line-height:1.6;max-width:44ch;font-fami
 
 /* pricing */
 .free-tag{font-size:10px;letter-spacing:.25em;border:1.5px solid currentColor;padding:6px 14px;border-radius:20px;opacity:.8}
+.beta-club{font-family:inherit;font-size:12px;letter-spacing:.08em;color:inherit;text-decoration:underline;text-underline-offset:3px;opacity:.85}
 .pro-tease{font-size:12px;letter-spacing:.1em;opacity:.9;border:1.5px dashed currentColor;padding:12px 20px;border-radius:10px;line-height:1.7;font-weight:700}
 
 /* CTA */
@@ -145,6 +148,7 @@ body{position:static;overflow:auto}
   <section class="beat by" id="b0">
     <div class="binner">
       <div class="hero-brand"><img class="hero-logo" id="hlogo" alt="KUTT"><span class="cam-suffix"><i class="dot">.</i>cam</span></div>
+      <div class="hero-sub" id="hsub" data-uk="повтори наживо — це просто" data-en="live replays made easy">повтори наживо — це просто</div>
     </div>
   </section>
 
@@ -181,13 +185,14 @@ body{position:static;overflow:auto}
     <div class="binner">
       <h1 class="display" data-uk="Зараз — безкоштовно" data-en="Free right now">Зараз — безкоштовно</h1>
       <div class="free-tag" data-uk="ВІДКРИТА БЕТА · БЕЗ ОБМЕЖЕНЬ" data-en="OPEN BETA · NO LIMITS">ВІДКРИТА БЕТА · БЕЗ ОБМЕЖЕНЬ</div>
+      <a class="beta-club" href="https://www.instagram.com/kutt.kyiv?igsi=MTJrNjRyZmh3MTFieQ==" target="_blank" rel="noopener" data-uk="в клубі KUTT на Кудрявці ↗" data-en="at KUTT club on Kudriavka ↗">в клубі KUTT на Кудрявці ↗</a>
       <div class="pro-tease" data-uk="PRO скоро — одна підписка на всі клуби" data-en="PRO soon — one subscription for all clubs">PRO скоро — одна підписка на всі клуби</div>
     </div>
   </section>
 
   <section class="beat by" id="b6">
     <div class="binner">
-      <a class="cta-big" href="/app/"><span class="cta-dot"></span><span data-uk="ЗАХОДЬ В АПКУ" data-en="ENTER THE APP">ЗАХОДЬ В АПКУ</span></a>
+      <a class="cta-big" href="/app/"><span class="cta-dot"></span><span data-uk="ЗАХОДЬ" data-en="ENTER">ЗАХОДЬ</span></a>
     </div>
   </section>
 
@@ -293,6 +298,7 @@ let trail=[], parts=[], ring=null;
 let swing=0, swingT=0;
 let bobT=Math.random()*10;
 let demoBeat=-1, demoT0=0;
+let subShown=false;
 
 function setPalette(yellow){
   document.body.classList.toggle('p-y',yellow);
@@ -758,7 +764,8 @@ function frame(now){
     if(Math.random()<0.7) trail.push({x:ball.x,y:ball.y,r:ball.r,a:1});
     if(p>=1){
       impactFX(ball.x,ball.y);
-      if(cur<NB-1) reveal(cur+1,ball.x,ball.y);
+      if(cur===0&&!subShown){ subShown=true; document.getElementById('hsub').classList.add('show'); }
+      else if(cur<NB-1) reveal(cur+1,ball.x,ball.y);
       phase='return'; t0=now;
       sx=ball.x; sy=ball.y;
     }

@@ -57,6 +57,7 @@ h1.display{font-size:clamp(29px,7.6vw,64px)}
 h2.display{font-size:clamp(23px,6vw,48px)}
 p.body{font-size:clamp(12px,3.2vw,15px);line-height:1.7;max-width:46ch;font-family:'Unbounded',sans-serif;font-weight:400}
 .sub{font-size:11px;letter-spacing:.14em;opacity:.65;line-height:1.8}
+.pro-line{opacity:.95;font-weight:700;font-size:12px}
 .hero-logo{width:min(42vw,195px);height:auto}
 .hero-brand{display:flex;align-items:flex-end;gap:7px;transition:transform .4s cubic-bezier(.55,-.5,.7,.4),opacity .35s}
 .hero-brand.gone{transform:scale(0);opacity:0}
@@ -69,18 +70,15 @@ p.body{font-size:clamp(12px,3.2vw,15px);line-height:1.7;max-width:46ch;font-fami
 .hd-left.pop{animation:pi .4s ease-out}
 
 /* how-it-works steps */
-#b3 .binner{margin-top:14vh}
-#b2 .binner{margin-top:12vh}
+#b1 .binner,#b2 .binner,#b3 .binner,#b4 .binner,#b5 .binner{margin-top:11vh}
 .steps{display:flex;flex-direction:column;gap:18px;text-align:left;margin-top:6px}
 .step{display:flex;gap:16px;align-items:baseline}
 .step .n{font-size:11px;letter-spacing:.2em;opacity:.5;flex-shrink:0}
 .step .t{font-family:'Unbounded',sans-serif;font-size:clamp(12px,3.3vw,16px);font-weight:600;line-height:1.45}
 
 /* pricing */
-.free-tag{font-size:10px;letter-spacing:.25em;border:1.5px solid currentColor;padding:6px 14px;border-radius:20px;opacity:.8}
-.beta-club{font-family:inherit;font-size:12px;letter-spacing:.08em;color:inherit;text-decoration:underline;text-underline-offset:3px;opacity:.85;transition:transform .12s;display:inline-block}
+.beta-club{font-family:inherit;font-size:12px;letter-spacing:.14em;color:inherit;text-decoration:underline;text-underline-offset:3px;opacity:.85;transition:transform .12s;display:inline-block}
 .beta-club:active{transform:scale(.95);opacity:1}
-.pro-tease{font-size:12px;letter-spacing:.1em;opacity:.9;border:1.5px dashed currentColor;padding:12px 20px;border-radius:10px;line-height:1.7;font-weight:700}
 
 /* CTA */
 .cta-big{
@@ -206,9 +204,9 @@ body{position:static;overflow:auto}
   <section class="beat by" id="b6">
     <div class="binner">
       <h1 class="display" data-uk="Зараз — безкоштовно" data-en="Free right now">Зараз — безкоштовно</h1>
-      <div class="free-tag" data-uk="ВІДКРИТА БЕТА · БЕЗ ОБМЕЖЕНЬ" data-en="OPEN BETA · NO LIMITS">ВІДКРИТА БЕТА · БЕЗ ОБМЕЖЕНЬ</div>
+      <div class="sub" data-uk="ВІДКРИТА БЕТА · БЕЗ ОБМЕЖЕНЬ" data-en="OPEN BETA · NO LIMITS">ВІДКРИТА БЕТА · БЕЗ ОБМЕЖЕНЬ</div>
       <a class="beta-club" href="https://www.instagram.com/kutt.kyiv?igsi=MTJrNjRyZmh3MTFieQ==" target="_blank" rel="noopener" data-uk="в клубі KUTT на Кудрявці ↗" data-en="at KUTT club on Kudriavka ↗">в клубі KUTT на Кудрявці ↗</a>
-      <div class="pro-tease" data-uk="PRO скоро — одна підписка на всі канали" data-en="PRO soon — one subscription for all channels">PRO скоро — одна підписка на всі канали</div>
+      <div class="sub pro-line" data-uk="PRO скоро — одна підписка на всі канали" data-en="PRO soon — one subscription for all channels">PRO скоро — одна підписка на всі канали</div>
     </div>
   </section>
 

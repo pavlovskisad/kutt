@@ -453,7 +453,7 @@ function drawTable(){
   ctx.moveTo(W*0.5,H+2); ctx.lineTo(vpX,vpY+H*0.09);
   ctx.stroke();
   // net: posts, sagging top cord, faint mesh
-  const ny=H*0.565, nw=W*0.70, nh=clamp(H*0.024,14,24);
+  const ny=H*0.64, nw=W*0.70, nh=clamp(H*0.024,14,24);
   const nx1=W*0.5-nw/2, nx2=W*0.5+nw/2, nfg=fgColor();
   ctx.strokeStyle='rgba('+nfg+',0.10)'; ctx.lineWidth=1;
   ctx.beginPath();

@@ -26,7 +26,7 @@ jobs:
       - name: Upload files
         run: |
           ssh -i ~/.ssh/deploy_key root@77.42.76.62 "mkdir -p /tmp/kutt-deploy"
-          scp -i ~/.ssh/deploy_key server.js index.html overview.html root@77.42.76.62:/tmp/kutt-deploy/
+          scp -i ~/.ssh/deploy_key server.js index.html app.html overview.html root@77.42.76.62:/tmp/kutt-deploy/
 
       - name: Install files and restart API if needed
         run: |

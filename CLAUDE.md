@@ -22,7 +22,7 @@ This file is the handoff from a chat-based Claude session that built most of the
          [nginx :443]  ── TLS, static frontend, reverse proxy to :3333 and :8888
                   │
                   ▼
-         [Browser]  ── index.html (single file, vanilla JS + hls.js)
+         [Browser]  ── app.html (single file, vanilla JS + hls.js)
 ```
 
 Server: Hetzner VPS `77.42.76.62`, Ubuntu 24.04, domain `kutt.cam` (kutt.online redirects there).
@@ -37,7 +37,9 @@ SSH: `root@77.42.76.62` (password auth — user is beginner at server admin, pre
 /opt/kutt/logos/kutt-watermark.png # burned into clips
 /opt/kutt/mediamtx                # MediaMTX binary
 /opt/kutt/mediamtx.yml            # MediaMTX config
-/var/www/html/index.html          # frontend (will move to Netlify)
+/var/www/html/index.html          # onboarding landing (repo: index.html)
+/var/www/html/app/index.html      # the app (repo: app.html), served at /app/
+/var/www/html/overview.html       # product deck
 /etc/nginx/sites-available/kutt   # nginx vhost
 /etc/systemd/system/kutt-api.service
 /etc/systemd/system/mediamtx.service
@@ -51,9 +53,19 @@ SSH: `root@77.42.76.62` (password auth — user is beginner at server admin, pre
 - **`-sseof` is reliable for clip extraction** but slow for filmstrip frame sampling because ffmpeg downloads segments sequentially. Generating a 10-frame filmstrip from 60s of HLS takes ~40 seconds on this VPS. This is why filmstrips are cached and pre-warmed on startup (see `server.js`).
 - **fMP4 warnings are normal**: you'll see `Found duplicated MOOV Atom. Skipped it` in ffmpeg stderr — harmless.
 
-## The frontend in one paragraph
+## URL map
 
-Single file `index.html`, vanilla JS, `hls.js` from CDN. Two tabs: **STREAM** (live feed + scrollable grid of past clips) and **REPLAY STATION** (filmstrip timeline editor). Two `<video>` elements: `#vid` for the live stream, `#vidR` for replay preview — they're stacked in the same container and toggled via `display`. The live HLS instance stays alive across tab switches; the replay HLS instance is created on entering REPLAY STATION and destroyed on leaving (prevents shared-element freezing bugs we had in v1). Clip bounds are stored as **absolute seconds-ago-from-live** (`sAgo`, `eAgo`), not as percentages of the zoom window — this means zoom in/out doesn't move the clip. Timeline background is a filmstrip JPEG fetched from `/api/filmstrip?seconds=<zoom>`. Handles: left handle, right handle, middle drag-whole-clip. Scrubbing any handle seeks `#vidR` to that position so the video area shows a frozen preview frame. Play button loops the selection on `#vidR` via `setInterval` checking `currentTime`.
+| URL | File (repo) | What |
+|---|---|---|
+| `kutt.cam/` | `index.html` | Onboarding landing — first-person rally: tap → ball flies into the screen, impact splat-reveals the next content beat (6 beats, UA default + EN toggle via `data-uk`/`data-en`, lang persisted in `localStorage.kutt_lang`). CTAs → `/app/`. Canvas 2D engine, zero deps. `prefers-reduced-motion`/no-JS → static stacked page. |
+| `kutt.cam/app/` | `app.html` | The app (STREAM + REPLAY STATION). Served from `/var/www/html/app/index.html` — no nginx change needed (`try_files $uri $uri/`). Its "?" header button links back to `/`. |
+| `kutt.cam/overview.html` | `overview.html` | Product/investor deck. |
+
+QR codes point at `kutt.cam/` → new players get onboarding first, by design.
+
+## The app in one paragraph
+
+Single file `app.html`, vanilla JS, `hls.js` from CDN. Two tabs: **STREAM** (live feed + scrollable grid of past clips) and **REPLAY STATION** (filmstrip timeline editor). Two `<video>` elements: `#vid` for the live stream, `#vidR` for replay preview — they're stacked in the same container and toggled via `display`. The live HLS instance stays alive across tab switches; the replay HLS instance is created on entering REPLAY STATION and destroyed on leaving (prevents shared-element freezing bugs we had in v1). Clip bounds are stored as **absolute seconds-ago-from-live** (`sAgo`, `eAgo`), not as percentages of the zoom window — this means zoom in/out doesn't move the clip. Timeline background is a filmstrip JPEG fetched from `/api/filmstrip?seconds=<zoom>`. Handles: left handle, right handle, middle drag-whole-clip. Scrubbing any handle seeks `#vidR` to that position so the video area shows a frozen preview frame. Play button loops the selection on `#vidR` via `setInterval` checking `currentTime`.
 
 ## The backend in one paragraph
 
@@ -61,7 +73,7 @@ Express app on port 3333. Endpoints: `GET /api/clips?limit&offset` (paginated cl
 
 ## Deployment workflow
 
-**Everything is self-hosted on the VPS and deploys automatically.** Push to `main` → GitHub Actions (`.github/workflows/deploy.yml`) SSHes into the VPS, installs `server.js` → `/opt/kutt/api/server.js`, `index.html` and `overview.html` → `/var/www/html/`, restarts `kutt-api` **only if server.js changed** (a restart re-warms filmstrip caches for ~3 min), then health-checks `https://kutt.cam/health`. The remote install logic lives in `.github/scripts/remote-deploy.sh`.
+**Everything is self-hosted on the VPS and deploys automatically.** Push to `main` → GitHub Actions (`.github/workflows/deploy.yml`) SSHes into the VPS, installs `server.js` → `/opt/kutt/api/server.js`, `index.html` + `overview.html` → `/var/www/html/`, `app.html` → `/var/www/html/app/index.html`, restarts `kutt-api` **only if server.js changed** (a restart re-warms filmstrip caches for ~3 min), then health-checks `https://kutt.cam/health`. The remote install logic lives in `.github/scripts/remote-deploy.sh`.
 
 - Auth: repo secret `VPS_SSH_KEY` holds a dedicated ed25519 private key; the matching public key is in `/root/.ssh/authorized_keys` on the VPS (key file `/root/.ssh/github_deploy`).
 - Deploy status: repo → Actions tab, or via GitHub MCP tools (`actions_list`, `get_job_logs`) from a Claude session.
@@ -90,8 +102,9 @@ Express app on port 3333. Endpoints: `GET /api/clips?limit&offset` (paginated cl
 ## File inventory
 
 ```
-├── index.html              # frontend, single file, auto-deploys to VPS
-├── overview.html           # product overview deck (linked from "?" in header)
+├── index.html              # onboarding landing (first-person rally), auto-deploys to VPS
+├── app.html                # the app, single file, auto-deploys to /app/ on VPS
+├── overview.html           # product/investor deck
 ├── server.js               # Node API (Express), auto-deploys to VPS
 ├── package.json            # deps: express, cors
 ├── kutt-api.service        # systemd unit reference

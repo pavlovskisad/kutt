@@ -5,7 +5,9 @@
 # caches, ~3 min — skip it for frontend-only deploys).
 set -e
 
-cp /tmp/kutt-deploy/index.html /var/www/html/index.html
+cp /tmp/kutt-deploy/index.html /var/www/html/index.html          # onboarding landing
+mkdir -p /var/www/html/app
+cp /tmp/kutt-deploy/app.html /var/www/html/app/index.html        # the app, served at /app/
 cp /tmp/kutt-deploy/overview.html /var/www/html/overview.html
 echo "frontend installed"
 

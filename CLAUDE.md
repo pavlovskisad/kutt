@@ -121,7 +121,7 @@ Express app on port 3333. Endpoints: `GET /api/clips?limit&offset` (paginated cl
 ## Brand constants
 
 - Yellow `#FFE135`, Blue `#1A8FCC`
-- Fonts: Space Grotesk (display), JetBrains Mono (body)
+- Fonts: Unbounded (display), Martian Mono (mono/body) — self-hosted at `/fonts/*.woff2` (full Cyrillic; Google Fonts dependency removed from landing + app; overview.html still uses Google Fonts)
 - STREAM tab = blue background, yellow accents. REPLAY STATION = inverted.
 
 ## Starting point for your session

@@ -16,15 +16,14 @@
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <title>kutt.cam — повтори наживо для всіх</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
+@font-face{font-family:'Unbounded';src:url('/fonts/unbounded.woff2') format('woff2');font-weight:200 900;font-display:swap}
+@font-face{font-family:'Martian Mono';src:url('/fonts/martianmono.woff2') format('woff2');font-weight:100 800;font-stretch:75% 112.5%;font-display:swap}
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--y:#FFE135;--b:#1A8FCC}
 html,body{height:100%;overflow:hidden;overscroll-behavior:none}
 body{
-  font-family:'JetBrains Mono','SF Mono',monospace;
+  font-family:'Martian Mono','SF Mono',monospace;
   background:var(--b);
   --fg:var(--y);--bg:var(--b);
   color:var(--fg);
@@ -51,19 +50,19 @@ a{color:inherit}
 .binner{max-width:640px;display:flex;flex-direction:column;align-items:center;gap:22px}
 .label{font-size:10px;letter-spacing:.22em;text-transform:uppercase;opacity:.55;line-height:1.6}
 h1.display,h2.display{
-  font-family:'Space Grotesk',sans-serif;font-weight:700;font-style:italic;
-  letter-spacing:-.02em;line-height:.98;
+  font-family:'Unbounded',sans-serif;font-weight:700;
+  letter-spacing:-.01em;line-height:1.04;
 }
-h1.display{font-size:clamp(38px,9.5vw,84px)}
-h2.display{font-size:clamp(30px,7.5vw,62px)}
-p.body{font-size:clamp(14px,3.6vw,17px);line-height:1.6;max-width:44ch;font-family:'Space Grotesk',sans-serif}
+h1.display{font-size:clamp(29px,7.6vw,64px)}
+h2.display{font-size:clamp(23px,6vw,48px)}
+p.body{font-size:clamp(12px,3.2vw,15px);line-height:1.7;max-width:46ch;font-family:'Unbounded',sans-serif;font-weight:400}
 .sub{font-size:11px;letter-spacing:.14em;opacity:.65;line-height:1.8}
 .hero-logo{width:min(42vw,195px);height:auto}
 .hero-brand{display:flex;align-items:flex-end;gap:7px;transition:transform .4s cubic-bezier(.55,-.5,.7,.4),opacity .35s}
 .hero-brand.gone{transform:scale(0);opacity:0}
-.hero-sub{visibility:hidden;font-family:'Space Grotesk',sans-serif;font-weight:600;font-style:italic;font-size:clamp(17px,4.8vw,24px);letter-spacing:.01em}
+.hero-sub{visibility:hidden;font-family:'Unbounded',sans-serif;font-weight:500;font-size:clamp(14px,3.9vw,20px);letter-spacing:.01em}
 .hero-sub.show{visibility:visible;animation:su .45s ease-out}
-.cam-suffix{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:clamp(34px,10vw,48px);line-height:1;margin-left:-16px;transform:translateY(.14em)}
+.cam-suffix{font-family:'Martian Mono',monospace;font-weight:700;font-size:clamp(34px,10vw,48px);line-height:1;margin-left:-16px;transform:translateY(.14em)}
 .cam-suffix .dot{color:#ff3030;font-style:normal;animation:lp 1.2s ease-in-out infinite}
 .cam-suffix.sm{font-size:18px;align-self:flex-end;margin-left:-10px;transform:translateY(.15em)}
 .hd-left.off{visibility:hidden}
@@ -74,7 +73,7 @@ p.body{font-size:clamp(14px,3.6vw,17px);line-height:1.6;max-width:44ch;font-fami
 .steps{display:flex;flex-direction:column;gap:18px;text-align:left;margin-top:6px}
 .step{display:flex;gap:16px;align-items:baseline}
 .step .n{font-size:11px;letter-spacing:.2em;opacity:.5;flex-shrink:0}
-.step .t{font-family:'Space Grotesk',sans-serif;font-size:clamp(15px,4vw,19px);font-weight:600;line-height:1.35}
+.step .t{font-family:'Unbounded',sans-serif;font-size:clamp(12px,3.3vw,16px);font-weight:600;line-height:1.45}
 
 /* pricing */
 .free-tag{font-size:10px;letter-spacing:.25em;border:1.5px solid currentColor;padding:6px 14px;border-radius:20px;opacity:.8}
@@ -86,7 +85,7 @@ p.body{font-size:clamp(14px,3.6vw,17px);line-height:1.6;max-width:44ch;font-fami
 .cta-big{
   display:inline-flex;align-items:center;gap:12px;
   background:var(--y);color:var(--b);
-  font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:clamp(16px,4.6vw,22px);
+  font-family:'Unbounded',sans-serif;font-weight:700;font-size:clamp(15px,4.2vw,20px);
   letter-spacing:.04em;text-decoration:none;
   padding:18px 34px;border-radius:14px;
   animation:ctap 2.2s ease-in-out infinite;
@@ -745,7 +744,7 @@ function drawChannelsDemo(now,t){
     ctx.lineWidth=isAct?1.6:1;
     rr(rx,ryy,rw,rh,5); ctx.stroke();
     ctx.setLineDash([]);
-    ctx.font='700 11px "JetBrains Mono",monospace';
+    ctx.font='700 11px "Martian Mono",monospace';
     ctx.textAlign='left'; ctx.textBaseline='middle';
     ctx.fillStyle='rgba('+fgColor()+','+(isAct?1:0.55)+')';
     ctx.fillText(teaser?(lang==='uk'?'+ твій клуб':'+ your spot'):names[i], rx+12, ryy+rh/2);

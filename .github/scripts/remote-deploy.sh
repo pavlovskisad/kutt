@@ -10,6 +10,9 @@ mkdir -p /var/www/html/app
 cp /tmp/kutt-deploy/app.html /var/www/html/app/index.html        # the app, served at /app/
 cp /tmp/kutt-deploy/overview.html /var/www/html/overview.html
 cp /tmp/kutt-deploy/og.png /var/www/html/og.png
+mkdir -p /var/www/html/fonts
+cp /tmp/kutt-deploy/unbounded.woff2 /var/www/html/fonts/unbounded.woff2
+cp /tmp/kutt-deploy/martianmono.woff2 /var/www/html/fonts/martianmono.woff2
 echo "frontend installed"
 
 if ! cmp -s /tmp/kutt-deploy/server.js /opt/kutt/api/server.js; then

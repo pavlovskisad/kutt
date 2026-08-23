@@ -797,102 +797,111 @@ function drawChannelsDemo(now,t){
   ctx.globalAlpha=1;
 }
 
-/* beat 2: your moments — a mini match; a highlight gets caught and loved */
+/* beat 2: your moments — star / trophy / target, each captured to a clip card */
+function starPath(x,y,R,rot){
+  ctx.beginPath();
+  for(let i=0;i<10;i++){
+    const r=i%2?R*0.44:R, a=-Math.PI/2+rot+i*Math.PI/5;
+    const px=x+Math.cos(a)*r, py=y+Math.sin(a)*r;
+    i?ctx.lineTo(px,py):ctx.moveTo(px,py);
+  }
+  ctx.closePath();
+}
+function drawIconStar(x,y,S,fg){
+  starPath(x,y,S,0);
+  ctx.fillStyle='rgba('+fg+',1)'; ctx.fill();
+}
+function drawIconTrophy(x,y,S,fg){
+  const s2=S*1.05;
+  ctx.fillStyle='rgba('+fg+',1)';
+  ctx.beginPath();
+  ctx.moveTo(x-s2*0.6,y-s2*0.95);
+  ctx.lineTo(x+s2*0.6,y-s2*0.95);
+  ctx.bezierCurveTo(x+s2*0.6,y-s2*0.2,x+s2*0.26,y-s2*0.02,x+s2*0.13,y);
+  ctx.lineTo(x-s2*0.13,y);
+  ctx.bezierCurveTo(x-s2*0.26,y-s2*0.02,x-s2*0.6,y-s2*0.2,x-s2*0.6,y-s2*0.95);
+  ctx.closePath(); ctx.fill();
+  ctx.fillRect(x-s2*0.07,y-s2*0.02,s2*0.14,s2*0.26);
+  rr(x-s2*0.32,y+s2*0.22,s2*0.64,s2*0.15,2); ctx.fill();
+  ctx.strokeStyle='rgba('+fg+',1)'; ctx.lineWidth=Math.max(2,s2*0.1);
+  ctx.beginPath(); ctx.arc(x-s2*0.64,y-s2*0.62,s2*0.26,Math.PI*0.75,Math.PI*1.85); ctx.stroke();
+  ctx.beginPath(); ctx.arc(x+s2*0.64,y-s2*0.62,s2*0.26,Math.PI*1.15,Math.PI*0.25); ctx.stroke();
+}
+function drawIconTarget(x,y,S,fg){
+  ctx.strokeStyle='rgba('+fg+',1)'; ctx.lineWidth=Math.max(2,S*0.14);
+  ctx.beginPath(); ctx.arc(x,y-S*0.28,S*0.92,0,TAU); ctx.stroke();
+  ctx.beginPath(); ctx.arc(x,y-S*0.28,S*0.52,0,TAU); ctx.stroke();
+  ctx.fillStyle='rgba('+fg+',1)';
+  ctx.beginPath(); ctx.arc(x,y-S*0.28,S*0.18,0,TAU); ctx.fill();
+}
+const CASE_ICONS=[drawIconStar,drawIconTrophy,drawIconTarget];
 function drawCasesDemo(now,t){
   const ga=easeOut(clamp(t/700,0,1));
-  const cxm=W*0.5, cy=H*0.25;
-  const w=clamp(W*0.54,180,270), h=w*0.60;
   const fg=fgColor();
-  const P=1050, C=6*P, tc=t%C;
-  const kc=Math.floor(tc/P), bp=(tc%P)/P;
-  const momentT=tc-4*P;                       // highlight lands at start of crossing 4
-  const flash=momentT>-120&&momentT<300;
+  const cxm=W*0.5;
+  const fw=clamp(W*0.44,156,220), fh=fw*0.62, fy=H*0.175;
+  const ICO=2300, HOLD=1500, T=3*ICO+HOLD, tc=t%T;
+  const idx=Math.min(3,Math.floor(tc/ICO));
+  const p=idx<3?(tc%ICO)/ICO:0;
+  const gfade=tc>T-420?clamp((T-tc)/420,0,1):1;
+  const holdT=tc-3*ICO;
 
-  // screen frame (border flashes on the moment)
-  ctx.globalAlpha=ga;
-  ctx.fillStyle='rgba('+fg+',0.08)'; rr(cxm-w/2,cy-h/2,w,h,8); ctx.fill();
-  ctx.strokeStyle='rgba('+fg+','+(flash?1:0.7)+')'; ctx.lineWidth=flash?2.5:1.5;
-  rr(cxm-w/2,cy-h/2,w,h,8); ctx.stroke();
-  // REC dot
-  ctx.globalAlpha=ga*(0.55+0.45*Math.sin(now/280));
+  // viewfinder frame
+  const capture=idx<3&&p>0.62&&p<0.76;
+  ctx.globalAlpha=ga*gfade;
+  ctx.fillStyle='rgba('+fg+',0.08)'; rr(cxm-fw/2,fy-fh/2,fw,fh,8); ctx.fill();
+  ctx.strokeStyle='rgba('+fg+','+(capture?1:0.7)+')'; ctx.lineWidth=capture?2.5:1.5;
+  rr(cxm-fw/2,fy-fh/2,fw,fh,8); ctx.stroke();
+  ctx.globalAlpha=ga*gfade*(0.55+0.45*Math.sin(now/280));
   ctx.fillStyle='#ff3030';
-  ctx.beginPath(); ctx.arc(cxm-w/2+11,cy-h/2+11,2.6,0,TAU); ctx.fill();
-  ctx.globalAlpha=ga;
+  ctx.beginPath(); ctx.arc(cxm-fw/2+11,fy-fh/2+11,2.6,0,TAU); ctx.fill();
+  ctx.globalAlpha=ga*gfade;
 
-  // table + net (side view)
-  const ty2=cy+h*0.24, tx1=cxm-w*0.36, tx2=cxm+w*0.36;
-  ctx.strokeStyle='rgba('+fg+',0.55)'; ctx.lineWidth=2;
-  ctx.beginPath(); ctx.moveTo(tx1,ty2); ctx.lineTo(tx2,ty2); ctx.stroke();
-  ctx.strokeStyle='rgba('+fg+',0.4)'; ctx.lineWidth=1.5;
-  ctx.beginPath(); ctx.moveTo(cxm,ty2); ctx.lineTo(cxm,ty2-h*0.14); ctx.stroke();
-
-  // ball path this crossing
-  const fromLeft=kc%2===0;
-  const x1=tx1+w*0.03, x2=tx2-w*0.03;
-  const bx=lerp(fromLeft?x1:x2, fromLeft?x2:x1, bp);
-  const by=ty2-h*0.06-Math.sin(bp*Math.PI)*h*0.34;
-  for(let k=1;k<=4;k++){
-    const tp=bp-k*0.08; if(tp<0)continue;
-    const tx=lerp(fromLeft?x1:x2, fromLeft?x2:x1, tp);
-    const tyv=ty2-h*0.06-Math.sin(tp*Math.PI)*h*0.34;
-    ctx.globalAlpha=ga*(0.45-k*0.09);
-    ctx.fillStyle='rgba('+fg+',1)';
-    ctx.beginPath(); ctx.arc(tx,tyv,3.2,0,TAU); ctx.fill();
-  }
-  ctx.globalAlpha=ga;
-  ctx.fillStyle='rgba('+fg+',1)';
-  ctx.beginPath(); ctx.arc(bx,by,4.5,0,TAU); ctx.fill();
-
-  // paddles at both ends, swinging on their hits
-  for(const side of [0,1]){                    // 0=left, 1=right
-    const px=side?tx2+w*0.045:tx1-w*0.045;
-    const hitting=(fromLeft?bp:1-bp);
-    const near=side?(hitting>0.86):(hitting<0.14);
-    const swing2=near?Math.sin(Math.min(1,(side?(bp-0.86):(0.14-bp))/0.14*(fromLeft===Boolean(side)?1:1))*Math.PI)*0.5:0;
-    ctx.save();
-    ctx.translate(px,ty2+h*0.015);
-    ctx.rotate((side?1:-1)*(0.35-swing2));
-    ctx.fillStyle='rgba('+fg+',0.9)';
-    ctx.beginPath(); ctx.ellipse(0,-h*0.075,w*0.045,h*0.085,0,0,TAU); ctx.fill();
-    ctx.fillStyle='rgba('+fg+',0.55)';
-    ctx.fillRect(-w*0.014,0,w*0.028,h*0.08);
-    ctx.restore();
-  }
-
-  // the moment: star burst where it lands
-  if(flash){
-    const sx2=kc>=4?(4%2===0?x2:x1):bx;
-    const sp2=clamp((momentT+120)/420,0,1);
-    ctx.strokeStyle='rgba('+fg+','+(1-sp2).toFixed(2)+')'; ctx.lineWidth=2;
-    for(let k2=0;k2<6;k2++){
-      const an=k2/6*TAU+0.4;
-      const r1=5+sp2*10, r2=10+sp2*18;
-      ctx.beginPath();
-      ctx.moveTo(x2+Math.cos(an)*r1,ty2-h*0.06+Math.sin(an)*r1);
-      ctx.lineTo(x2+Math.cos(an)*r2,ty2-h*0.06+Math.sin(an)*r2);
-      ctx.stroke();
-    }
-  }
-
-  // caught: a little clip card pops above the screen with a heart
-  if(momentT>250){
-    const cp=easeOut(clamp((momentT-250)/450,0,1));
-    const fade=momentT>1900?clamp(1-(momentT-1900)/500,0,1):1;
-    const cw2=w*0.30, ch2=cw2*0.62;
-    const ccx=cxm+w*0.28, ccy=cy-h/2-6-cp*10;
-    ctx.globalAlpha=ga*cp*fade;
-    ctx.fillStyle='rgba('+fg+',0.14)'; rr(ccx-cw2/2,ccy-ch2/2,cw2,ch2,5); ctx.fill();
-    ctx.strokeStyle='rgba('+fg+',0.95)'; ctx.lineWidth=1.6; rr(ccx-cw2/2,ccy-ch2/2,cw2,ch2,5); ctx.stroke();
-    ctx.fillStyle='rgba('+fg+',1)';
-    ctx.beginPath(); ctx.arc(ccx-cw2*0.1,ccy-ch2*0.05,2.4,0,TAU); ctx.fill();
-    if(momentT>650){
-      const hp=easeOut(clamp((momentT-650)/300,0,1));
-      ctx.font='700 '+Math.round(11*hp)+'px sans-serif';
-      ctx.textAlign='center'; ctx.textBaseline='middle';
+  // clip-card slots under the frame
+  const cw2=clamp(fw*0.20,32,44), ch2=cw2*0.72, cgap=10;
+  const rowY=fy+fh/2+16+ch2/2;
+  for(let k=0;k<3;k++){
+    const sx=cxm+(k-1)*(cw2+cgap);
+    const got=k<idx||(k===idx&&p>0.99);
+    ctx.globalAlpha=ga*gfade*(got?1:0.35);
+    ctx.fillStyle='rgba('+fg+','+(got?0.16:0.07)+')';
+    rr(sx-cw2/2,rowY-ch2/2,cw2,ch2,4); ctx.fill();
+    ctx.strokeStyle='rgba('+fg+','+(got?0.9:0.35)+')'; ctx.lineWidth=got?1.6:1;
+    rr(sx-cw2/2,rowY-ch2/2,cw2,ch2,4); ctx.stroke();
+    if(got){
+      CASE_ICONS[k](sx,rowY+ch2*0.16,ch2*0.30,fg);
       ctx.fillStyle='#ff3030';
-      ctx.fillText('\u2665',ccx+cw2/2-7,ccy+ch2/2-7);
+      ctx.beginPath(); ctx.arc(sx-cw2/2+5,rowY-ch2/2+5,1.6,0,TAU); ctx.fill();
     }
-    ctx.globalAlpha=1;
+  }
+  ctx.globalAlpha=ga*gfade;
+
+  if(idx<3){
+    const icon=CASE_ICONS[idx];
+    const S=fh*0.30;
+    if(p<0.62){                     // pop in + idle wobble inside the frame
+      const ap=easeOut(clamp(p/0.16,0,1));
+      const wob=p>0.2?Math.sin(now/300)*0.06:0;
+      ctx.save();
+      ctx.translate(cxm,fy+fh*0.08);
+      ctx.rotate(wob);
+      ctx.scale(ap,ap);
+      icon(0,0,S,fg);
+      ctx.restore();
+    }else if(p<0.76){               // shutter: flash ring around the icon
+      icon(cxm,fy+fh*0.08,S,fg);
+      const sp2=(p-0.62)/0.14;
+      ctx.globalAlpha=ga*gfade*(1-sp2);
+      ctx.strokeStyle='rgba('+fg+',1)'; ctx.lineWidth=2.5*(1-sp2)+0.5;
+      ctx.beginPath(); ctx.arc(cxm,fy+fh*0.02,S*1.15+sp2*26,0,TAU); ctx.stroke();
+      ctx.globalAlpha=ga*gfade;
+    }else{                          // captured: fly down into its slot
+      const fp=easeIn(clamp((p-0.76)/0.24,0,1));
+      const sx=cxm+(idx-1)*(cw2+cgap);
+      const ix=lerp(cxm,sx,fp), iy=lerp(fy+fh*0.08,rowY+ch2*0.16,fp);
+      const is2=lerp(S,ch2*0.30,fp);
+      icon(ix,iy,is2,fg);
+    }
   }
   ctx.globalAlpha=1;
 }

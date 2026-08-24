@@ -809,7 +809,7 @@ function drawCasesDemo(now,t){
   const ga=easeOut(clamp(t/700,0,1));
   const fg=fgColor();
   const cxm=W*0.5;
-  const fw=clamp(W*0.44,156,220), fh=fw*0.62, fy=H*0.175;
+  const fw=clamp(W*0.44,156,220), fh=fw*0.62, fy=H*0.22, iy0=fy+fh*0.04;
   const ICO=2300, HOLD=1500, T=3*ICO+HOLD, tc=t%T;
   const idx=Math.min(3,Math.floor(tc/ICO));
   const p=idx<3?(tc%ICO)/ICO:0;
@@ -852,24 +852,24 @@ function drawCasesDemo(now,t){
       const ap=easeOut(clamp(p/0.16,0,1));
       const wob=p>0.2?Math.sin(now/300)*0.06:0;
       ctx.save();
-      ctx.translate(cxm,fy+fh*0.08);
+      ctx.translate(cxm,iy0);
       ctx.rotate(wob);
       ctx.scale(ap,ap);
       drawEmoji(idx,0,0,S);
       ctx.restore();
     }else if(p<0.76){               // shutter: flash ring around the icon
-      drawEmoji(idx,cxm,fy+fh*0.08,S);
+      drawEmoji(idx,cxm,iy0,S);
       const sp2=(p-0.62)/0.14;
       ctx.globalAlpha=ga*gfade*(1-sp2);
       ctx.strokeStyle='rgba('+fg+',1)'; ctx.lineWidth=2.5*(1-sp2)+0.5;
-      ctx.beginPath(); ctx.arc(cxm,fy+fh*0.02,S*1.15+sp2*26,0,TAU); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cxm,iy0,S*1.15+sp2*26,0,TAU); ctx.stroke();
       ctx.globalAlpha=ga*gfade;
     }else{                          // captured: fly down into its slot
       const fp=easeIn(clamp((p-0.76)/0.24,0,1));
       const sx=cxm+(idx-1)*(cw2+cgap);
-      const ix=lerp(cxm,sx,fp), iy=lerp(fy+fh*0.08,rowY+ch2*0.16,fp);
+      const ix=lerp(cxm,sx,fp);
       const is2=lerp(S,ch2*0.32,fp);
-      drawEmoji(idx,ix,lerp(fy+fh*0.08,rowY,fp),is2);
+      drawEmoji(idx,ix,lerp(iy0,rowY,fp),is2);
     }
   }
   ctx.globalAlpha=1;

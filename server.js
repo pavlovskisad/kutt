@@ -242,4 +242,20 @@ app.listen(PORT, () => {
       generateFilmstrip(60);
     }
   }, 15000);
+  // Self-heal: startup warming runs once, so if the camera is offline at boot
+  // every zoom level ends up with no cache and stays that way until a restart —
+  // requests for those levels then block until the ffmpeg timeout and 504.
+  // Retry missing levels in the background, one at a time.
+  setInterval(() => {
+    const busy = Object.keys(filmstripCache).some(k => filmstripCache[k].generating);
+    if (busy) return;
+    const missing = zooms.find(z => {
+      const c = filmstripCache[z + ''];
+      return !c || !c.file || !fs.existsSync(c.file);
+    });
+    if (missing) {
+      console.log('[filmstrip] self-heal zoom=' + missing + '...');
+      generateFilmstrip(missing);
+    }
+  }, 45000);
 });

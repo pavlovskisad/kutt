@@ -246,7 +246,8 @@ function generateFilmstrip(zoom, cb) {
   }
   const args = [];
   picks.forEach(p => args.push('-i', p));
-  args.push('-filter_complex', 'hstack=inputs=' + picks.length, '-frames:v', '1', '-q:v', '4', '-y', tmpFile);
+  // -f image2 is required: the temp name ends in .tmp so ffmpeg can't infer it.
+  args.push('-filter_complex', 'hstack=inputs=' + picks.length, '-frames:v', '1', '-q:v', '4', '-f', 'image2', '-y', tmpFile);
   execFile('ffmpeg', args, { timeout: 60000, maxBuffer: 1024 * 1024 * 4 }, (error, stdout, stderr) => done(error, stderr));
 }
 

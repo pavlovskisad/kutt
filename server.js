@@ -21,10 +21,21 @@ app.use('/clips', (req, res, next) => {
 
 app.get('/health', (req, res) => { res.json({ status: 'ok' }); });
 app.get('/api/buffer-info', (req, res) => {
-  try {
-    const files = fs.readdirSync(HLS_DIR).filter(f => f.endsWith('.mp4')).sort();
-    res.json({ available: files.length > 0, segments: files.length, estimatedSeconds: files.length * 2 });
-  } catch (e) { res.json({ available: false }); }
+  const all = ringFrames();
+  const span = all.length ? Math.round((all[all.length - 1].t - all[0].t) / 1000) : 0;
+  const fresh = all.length ? Math.round((Date.now() - all[all.length - 1].t) / 1000) : null;
+  res.json({
+    available: all.length > 0 && fresh !== null && fresh < 60,
+    ringFrames: all.length,
+    ringSpanSeconds: span,
+    newestFrameAgeSeconds: fresh,
+    strips: Object.keys(filmstripCache).map(k => ({
+      zoom: parseInt(k, 10),
+      cached: !!(filmstripCache[k].file && fs.existsSync(filmstripCache[k].file)),
+      ageSeconds: filmstripCache[k].time ? Math.round((Date.now() - filmstripCache[k].time) / 1000) : null,
+      generating: !!filmstripCache[k].generating
+    }))
+  });
 });
 
 // List clips with pagination
@@ -133,6 +144,42 @@ if (!fs.existsSync(FILMSTRIP_DIR)) fs.mkdirSync(FILMSTRIP_DIR, { recursive: true
 // Cache per zoom level: { '60': { file, time, generating } }
 const filmstripCache = {};
 
+// Continuous frame ring. One cheap grab from the LIVE EDGE every 10s, kept for
+// ~33 min. Long filmstrips composite from these instead of seeking backwards
+// through the buffer: ffmpeg has to stream everything it seeks past, so a 5m
+// window costs minutes and a 30m window is hopeless. Reading the live edge is
+// always ~2s no matter how far back the strip reaches.
+const FRAMES_DIR = path.join(FILMSTRIP_DIR, 'ring');
+if (!fs.existsSync(FRAMES_DIR)) fs.mkdirSync(FRAMES_DIR, { recursive: true });
+const RING_KEEP_MS = 2000 * 1000;
+const STREAM_URL = 'http://127.0.0.1:8888/table2/stream.m3u8';
+let ringBusy = false;
+
+function ringFrames() {
+  try {
+    return fs.readdirSync(FRAMES_DIR)
+      .map(n => ({ n: n, t: parseInt(n, 10), p: path.join(FRAMES_DIR, n) }))
+      .filter(x => x.t && x.n.endsWith('.jpg'))
+      .sort((a, b) => a.t - b.t);
+  } catch (e) { return []; }
+}
+
+function ringTick() {
+  if (ringBusy) return;
+  ringBusy = true;
+  const f = path.join(FRAMES_DIR, Date.now() + '.jpg');
+  execFile('ffmpeg', [
+    '-an', '-sseof', '-3', '-i', STREAM_URL,
+    '-frames:v', '1', '-q:v', '5', '-vf', 'scale=-1:80', '-y', f
+  ], { timeout: 25000, maxBuffer: 1024 * 1024 }, () => {
+    ringBusy = false;
+    const now = Date.now();
+    ringFrames().forEach(x => {
+      if (now - x.t > RING_KEEP_MS) { try { fs.unlinkSync(x.p); } catch (e) {} }
+    });
+  });
+}
+
 function generateFilmstrip(zoom, cb) {
   const key = zoom + '';
   if (!filmstripCache[key]) filmstripCache[key] = {};
@@ -145,7 +192,6 @@ function generateFilmstrip(zoom, cb) {
   const outFile = path.join(FILMSTRIP_DIR, 'strip_' + zoom + '.jpg');
   const tmpFile = outFile + '.tmp';
   const frames = 10, height = 80;
-  const STREAM_URL = 'http://127.0.0.1:8888/table2/stream.m3u8';
   const started = Date.now();
 
   function done(error, stderr) {
@@ -166,7 +212,7 @@ function generateFilmstrip(zoom, cb) {
     if (cb) cb(null, outFile);
   }
 
-  // Short windows: one sequential read is cheap and gives evenly spaced frames.
+  // Short windows: one sequential read is cheap and gives the freshest frames.
   if (zoom <= 120) {
     const fpsRate = frames / zoom;
     execFile('ffmpeg', [
@@ -182,44 +228,26 @@ function generateFilmstrip(zoom, cb) {
     return;
   }
 
-  // Long windows: a sequential read has to pull the whole window out of
-  // MediaMTX (~0.7s of download per second of footage), so 5m and 30m never
-  // finish inside any sane timeout. Grab each frame with its own seek instead
-  // and stitch them — cost stays roughly flat however long the window is.
-  const dir = path.join(FILMSTRIP_DIR, 'f' + zoom);
-  try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) {}
-  try { fs.mkdirSync(dir, { recursive: true }); } catch (e) {}
-
-  let i = 0;
-  (function grab() {
-    if (i >= frames) return stitch();
-    const offset = Math.max(2, Math.round(zoom - (i * zoom) / frames)); // oldest first
-    const f = path.join(dir, 'f' + String(i).padStart(2, '0') + '.jpg');
-    i++;
-    execFile('ffmpeg', [
-      '-an',
-      '-sseof', '-' + offset,
-      '-i', STREAM_URL,
-      '-frames:v', '1',
-      '-q:v', '4',
-      '-vf', 'scale=-1:' + height,
-      '-y', f
-    ], { timeout: 40000, maxBuffer: 1024 * 1024 * 4 }, () => grab());
-  })();
-
-  function stitch() {
-    let got = [];
-    try { got = fs.readdirSync(dir).filter(f => f.endsWith('.jpg')).sort(); } catch (e) {}
-    if (!got.length) return done(new Error('no_frames'));
-    if (got.length === 1) {
-      try { fs.copyFileSync(path.join(dir, got[0]), tmpFile); } catch (e) {}
-      return done(null);
+  // Long windows: composite from the ring. Picks the nearest stored frame to
+  // each slot, so a half-filled ring still renders (repeats early on, fills in
+  // as history accumulates) instead of failing outright.
+  const all = ringFrames();
+  if (!all.length) return done(new Error('ring_empty'));
+  const now = Date.now();
+  const picks = [];
+  for (let i = 0; i < frames; i++) {
+    const target = now - zoom * 1000 + (i * zoom * 1000) / (frames - 1);
+    let best = all[0], bd = Math.abs(all[0].t - target);
+    for (const x of all) {
+      const d = Math.abs(x.t - target);
+      if (d < bd) { bd = d; best = x; }
     }
-    const args = [];
-    got.forEach(f => args.push('-i', path.join(dir, f)));
-    args.push('-filter_complex', 'hstack=inputs=' + got.length, '-frames:v', '1', '-q:v', '4', '-y', tmpFile);
-    execFile('ffmpeg', args, { timeout: 60000, maxBuffer: 1024 * 1024 * 4 }, (error, stdout, stderr) => done(error, stderr));
+    picks.push(best.p);
   }
+  const args = [];
+  picks.forEach(p => args.push('-i', p));
+  args.push('-filter_complex', 'hstack=inputs=' + picks.length, '-frames:v', '1', '-q:v', '4', '-y', tmpFile);
+  execFile('ffmpeg', args, { timeout: 60000, maxBuffer: 1024 * 1024 * 4 }, (error, stdout, stderr) => done(error, stderr));
 }
 
 app.get('/api/filmstrip', (req, res) => {
@@ -280,6 +308,8 @@ app.listen(PORT, () => {
     console.log('[filmstrip] warming zoom=' + z + '...');
     generateFilmstrip(z, () => warmNext());
   }
+  ringTick();
+  setInterval(ringTick, 10000);
   setTimeout(warmNext, 3000);
   // Periodic refresh of zoom=60 (most common) every 15s
   setInterval(() => {

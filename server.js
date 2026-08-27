@@ -145,25 +145,14 @@ function generateFilmstrip(zoom, cb) {
   const outFile = path.join(FILMSTRIP_DIR, 'strip_' + zoom + '.jpg');
   const tmpFile = outFile + '.tmp';
   const frames = 10, height = 80;
-  const fpsRate = frames / zoom;
   const STREAM_URL = 'http://127.0.0.1:8888/table2/stream.m3u8';
-
-  const args = [
-    '-an',
-    '-sseof', '-' + zoom,
-    '-i', STREAM_URL,
-    '-vf', 'fps=' + fpsRate.toFixed(6) + ',scale=-1:' + height + ',tile=' + frames + 'x1',
-    '-frames:v', '1',
-    '-q:v', '4',
-    '-f', 'image2',
-    '-y', tmpFile
-  ];
-
   const started = Date.now();
-  execFile('ffmpeg', args, { timeout: 120000, maxBuffer: 1024 * 1024 * 4 }, (error, stdout, stderr) => {
+
+  function done(error, stderr) {
     filmstripCache[key].generating = false;
     const elapsed = ((Date.now() - started) / 1000).toFixed(1);
     if (error || !fs.existsSync(tmpFile)) {
+      filmstripCache[key].lastFail = Date.now();
       console.error('[filmstrip] FAIL zoom=' + zoom + ' after ' + elapsed + 's:', error && error.message);
       if (stderr) console.error('[filmstrip] stderr tail:', stderr.split('\n').slice(-5).join(' | '));
       if (cb) cb(error || new Error('no_output'));
@@ -172,9 +161,65 @@ function generateFilmstrip(zoom, cb) {
     try { fs.renameSync(tmpFile, outFile); } catch (e) {}
     filmstripCache[key].file = outFile;
     filmstripCache[key].time = Date.now();
+    filmstripCache[key].lastFail = 0;
     console.log('[filmstrip] OK zoom=' + zoom + ' in ' + elapsed + 's');
     if (cb) cb(null, outFile);
-  });
+  }
+
+  // Short windows: one sequential read is cheap and gives evenly spaced frames.
+  if (zoom <= 120) {
+    const fpsRate = frames / zoom;
+    execFile('ffmpeg', [
+      '-an',
+      '-sseof', '-' + zoom,
+      '-i', STREAM_URL,
+      '-vf', 'fps=' + fpsRate.toFixed(6) + ',scale=-1:' + height + ',tile=' + frames + 'x1',
+      '-frames:v', '1',
+      '-q:v', '4',
+      '-f', 'image2',
+      '-y', tmpFile
+    ], { timeout: 120000, maxBuffer: 1024 * 1024 * 4 }, (error, stdout, stderr) => done(error, stderr));
+    return;
+  }
+
+  // Long windows: a sequential read has to pull the whole window out of
+  // MediaMTX (~0.7s of download per second of footage), so 5m and 30m never
+  // finish inside any sane timeout. Grab each frame with its own seek instead
+  // and stitch them — cost stays roughly flat however long the window is.
+  const dir = path.join(FILMSTRIP_DIR, 'f' + zoom);
+  try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) {}
+  try { fs.mkdirSync(dir, { recursive: true }); } catch (e) {}
+
+  let i = 0;
+  (function grab() {
+    if (i >= frames) return stitch();
+    const offset = Math.max(2, Math.round(zoom - (i * zoom) / frames)); // oldest first
+    const f = path.join(dir, 'f' + String(i).padStart(2, '0') + '.jpg');
+    i++;
+    execFile('ffmpeg', [
+      '-an',
+      '-sseof', '-' + offset,
+      '-i', STREAM_URL,
+      '-frames:v', '1',
+      '-q:v', '4',
+      '-vf', 'scale=-1:' + height,
+      '-y', f
+    ], { timeout: 40000, maxBuffer: 1024 * 1024 * 4 }, () => grab());
+  })();
+
+  function stitch() {
+    let got = [];
+    try { got = fs.readdirSync(dir).filter(f => f.endsWith('.jpg')).sort(); } catch (e) {}
+    if (!got.length) return done(new Error('no_frames'));
+    if (got.length === 1) {
+      try { fs.copyFileSync(path.join(dir, got[0]), tmpFile); } catch (e) {}
+      return done(null);
+    }
+    const args = [];
+    got.forEach(f => args.push('-i', path.join(dir, f)));
+    args.push('-filter_complex', 'hstack=inputs=' + got.length, '-frames:v', '1', '-q:v', '4', '-y', tmpFile);
+    execFile('ffmpeg', args, { timeout: 60000, maxBuffer: 1024 * 1024 * 4 }, (error, stdout, stderr) => done(error, stderr));
+  }
 }
 
 app.get('/api/filmstrip', (req, res) => {
@@ -251,6 +296,7 @@ app.listen(PORT, () => {
     if (busy) return;
     const missing = zooms.find(z => {
       const c = filmstripCache[z + ''];
+      if (c && c.lastFail && Date.now() - c.lastFail < 600000) return false; // 10m backoff
       return !c || !c.file || !fs.existsSync(c.file);
     });
     if (missing) {

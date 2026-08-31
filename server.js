@@ -151,7 +151,7 @@ const filmstripCache = {};
 // always ~2s no matter how far back the strip reaches.
 const FRAMES_DIR = path.join(FILMSTRIP_DIR, 'ring');
 if (!fs.existsSync(FRAMES_DIR)) fs.mkdirSync(FRAMES_DIR, { recursive: true });
-const RING_KEEP_MS = 2000 * 1000;
+const RING_KEEP_MS = 2000 * 1000; // ~33 min, a little over the HLS buffer
 const STREAM_URL = 'http://127.0.0.1:8888/table2/stream.m3u8';
 let ringBusy = false;
 
@@ -212,8 +212,14 @@ function generateFilmstrip(zoom, cb) {
     if (cb) cb(null, outFile);
   }
 
-  // Short windows: one sequential read is cheap and gives the freshest frames.
-  if (zoom <= 120) {
+  // Composite from the ring whenever it holds enough history. A sequential read
+  // costs ~0.7s per second of window, so a 60s strip only finishes ~40s after it
+  // started and is already that stale before anyone sees it — which is why a
+  // rally you just watched live wasn't on the timeline yet. Ring frames are at
+  // most one tick old, so the strip matches what the player just saw.
+  const ring = ringFrames();
+  if (ring.length < 3) {
+    if (zoom > 120) return done(new Error('ring_empty'));
     const fpsRate = frames / zoom;
     execFile('ffmpeg', [
       '-an',
@@ -228,11 +234,9 @@ function generateFilmstrip(zoom, cb) {
     return;
   }
 
-  // Long windows: composite from the ring. Picks the nearest stored frame to
-  // each slot, so a half-filled ring still renders (repeats early on, fills in
-  // as history accumulates) instead of failing outright.
-  const all = ringFrames();
-  if (!all.length) return done(new Error('ring_empty'));
+  // Nearest stored frame per slot, so a half-filled ring still renders (frames
+  // repeat early on and spread out as history accumulates) instead of failing.
+  const all = ring;
   const now = Date.now();
   const picks = [];
   for (let i = 0; i < frames; i++) {
@@ -310,7 +314,7 @@ app.listen(PORT, () => {
     generateFilmstrip(z, () => warmNext());
   }
   ringTick();
-  setInterval(ringTick, 10000);
+  setInterval(ringTick, 6000);
   setTimeout(warmNext, 3000);
   // Periodic refresh of zoom=60 (most common) every 15s
   setInterval(() => {

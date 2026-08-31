@@ -196,6 +196,12 @@ let likedIds=new Set();
 let feedClips=[],feedTotal=0,feedOffset=0,feedLoading=false,feedDone=false;
 let filmstripUrl='',filmstripLoading=false,filmstripCacheKey='',filmstripLastTime=0;
 let hlsR=null,replayReady=false;
+// Replay Station freezes time: sAgo/eAgo are seconds-ago from the moment the
+// station was opened, not from a live "now" that keeps sliding forward while
+// the player picks their handles. Without this a clip positioned right after a
+// rally drifts later and later the longer they take to press save.
+let anchorT=0;
+function driftS(){return anchorT?Math.max(0,(Date.now()-anchorT)/1000):0}
 
 // === HELPERS ===
 function fs2(s){const a=Math.abs(Math.floor(s));return(s<0?'-':'')+Math.floor(a/60)+':'+String(a%60).padStart(2,'0')}
@@ -255,7 +261,7 @@ function seekReplayTo(ago){
     const buf=vidR.buffered;
     if(buf.length===0)return;
     const liveEdge=buf.end(buf.length-1);
-    let t=liveEdge-ago;
+    let t=liveEdge-ago-driftS();
     const minT=buf.start(0);
     if(t<minT)t=minT;
     if(t>liveEdge-0.1)t=liveEdge-0.1;
@@ -370,6 +376,7 @@ function sw(t){
     vid.style.display='none';
     try{vid.pause()}catch(e){}
     // Default clip: 10s, centered around 10s ago
+    anchorT=Date.now();
     if(sAgo===null){sAgo=15;eAgo=5}
     ed=false;ex=false;py=false;
     // Load filmstrip first (fast), then init replay HLS
@@ -494,7 +501,7 @@ async function doEx(){
   ex=true;rr();
   try{
     const r=await fetch(B+'/api/clip',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({startSecondsAgo:clipOld(),endSecondsAgo:clipNew()})});
+      body:JSON.stringify({startSecondsAgo:clipOld()+driftS(),endSecondsAgo:clipNew()+driftS()})});
     const d=await r.json();
     if(d.url){eu=B+d.url;ef=d.filename||'kutt-clip.mp4';ed=true;loadFeed()}
     else{alert(d.error||'Export failed')}
@@ -505,7 +512,7 @@ async function doEx(){
 function dlClip(){if(!eu)return;fetch(eu).then(function(r){return r.blob()}).then(function(blob){var file=new File([blob],ef,{type:'video/mp4'});if(navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file],title:'KUTT Replay'}).catch(function(){fbDl(blob)})}else{fbDl(blob)}}).catch(function(){window.open(eu,'_blank')})}
 function fbDl(blob){var u=URL.createObjectURL(blob);var a=document.createElement('a');a.href=u;a.download=ef;a.style.display='none';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u)}
 
-function kuttAgain(){ed=false;eu='';ef='';sAgo=15;eAgo=5;loadFilmstrip(true);seekReplayTo(clipOld());rr()}
+function kuttAgain(){ed=false;eu='';ef='';anchorT=Date.now();sAgo=15;eAgo=5;loadFilmstrip(true);seekReplayTo(clipOld());rr()}
 
 function toggleLike(id){
   fetch(B+'/api/like/'+id,{method:'POST'}).then(r=>r.json()).then(d=>{

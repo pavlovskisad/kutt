@@ -36,3 +36,7 @@ free -h | awk '/^Mem:/{print "mem:    "$3" used / "$2" total ("$7" available)"}'
 df -h / | awk 'NR==2{print "disk:   "$3" used / "$2" ("$5" full, "$4" free)"}'
 echo "clips:  $(ls /opt/kutt/clips/*.mp4 2>/dev/null | wc -l) files, $(du -sh /opt/kutt/clips 2>/dev/null | cut -f1) total"
 echo "ring:   $(ls /tmp/kutt-filmstrips/ring/*.jpg 2>/dev/null | wc -l) frames, $(du -sh /tmp/kutt-filmstrips 2>/dev/null | cut -f1)"
+echo "top rss:"
+ps -eo rss,comm --sort=-rss | awk 'NR>1 && NR<=6 {printf "        %6.0f MB  %s\n", $1/1024, $2}'
+echo "hls buffer config:"
+grep -E "hlsSegment(Count|Duration|MaxSize)|hlsPartDuration|hlsVariant" /opt/kutt/mediamtx.yml 2>/dev/null | sed 's/^/        /' || echo "        (defaults)"

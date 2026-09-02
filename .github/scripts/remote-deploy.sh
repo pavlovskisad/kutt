@@ -40,3 +40,11 @@ echo "top rss:"
 ps -eo rss,comm --sort=-rss | awk 'NR>1 && NR<=6 {printf "        %6.0f MB  %s\n", $1/1024, $2}'
 echo "hls buffer config:"
 grep -E "hlsSegment(Count|Duration|MaxSize)|hlsPartDuration|hlsVariant" /opt/kutt/mediamtx.yml 2>/dev/null | sed 's/^/        /' || echo "        (defaults)"
+
+# TEMP: verify the motion-score filter chain against this box's ffmpeg build.
+echo "--- motion score self-check ---"
+ffmpeg -v error -f lavfi -i color=c=black:s=107x80 -frames:v 1 -y /tmp/ms_a.jpg 2>/dev/null
+ffmpeg -v error -f lavfi -i color=c=gray:s=107x80  -frames:v 1 -y /tmp/ms_b.jpg 2>/dev/null
+echo "  identical frames -> $(ffmpeg -v error -i /tmp/ms_a.jpg -i /tmp/ms_a.jpg -filter_complex '[0][1]blend=all_mode=difference,format=gray,scale=1:1:flags=area' -frames:v 1 -f rawvideo - 2>/dev/null | od -An -tu1 | tr -d ' ') (expect 0)"
+echo "  black vs gray    -> $(ffmpeg -v error -i /tmp/ms_a.jpg -i /tmp/ms_b.jpg -filter_complex '[0][1]blend=all_mode=difference,format=gray,scale=1:1:flags=area' -frames:v 1 -f rawvideo - 2>/dev/null | od -An -tu1 | tr -d ' ') (expect ~128)"
+rm -f /tmp/ms_a.jpg /tmp/ms_b.jpg

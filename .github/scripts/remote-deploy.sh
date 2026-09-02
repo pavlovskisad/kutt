@@ -41,13 +41,3 @@ ps -eo rss,comm --sort=-rss | awk 'NR>1 && NR<=6 {printf "        %6.0f MB  %s\n
 echo "hls buffer config:"
 grep -E "hlsSegment(Count|Duration|MaxSize)|hlsPartDuration|hlsVariant" /opt/kutt/mediamtx.yml 2>/dev/null | sed 's/^/        /' || echo "        (defaults)"
 
-# TEMP: verify the motion-score filter chain against this box's ffmpeg build.
-# NOTE: this script arrives on stdin (ssh 'bash -s'), and ffmpeg reads stdin —
-# without </dev/null it swallows the rest of the script and the deploy dies with
-# a bogus "command not found". Every ffmpeg call here must redirect stdin.
-echo "--- motion score self-check ---"
-MS() { ffmpeg -v error -i "$1" -i "$2" -filter_complex '[0][1]blend=all_mode=difference,format=gray,scale=1:1:flags=area' -frames:v 1 -f rawvideo - </dev/null 2>/dev/null | od -An -tu1 | tr -d ' \n'; }
-ffmpeg -v error -f lavfi -i color=c=black:s=107x80 -frames:v 1 -y /tmp/ms_a.jpg </dev/null >/dev/null 2>&1 || true
-ffmpeg -v error -f lavfi -i color=c=gray:s=107x80  -frames:v 1 -y /tmp/ms_b.jpg </dev/null >/dev/null 2>&1 || true
-echo "  identical=[$(MS /tmp/ms_a.jpg /tmp/ms_a.jpg)] (expect 0)  black-vs-gray=[$(MS /tmp/ms_a.jpg /tmp/ms_b.jpg)] (expect ~128)"
-rm -f /tmp/ms_a.jpg /tmp/ms_b.jpg

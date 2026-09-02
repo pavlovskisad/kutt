@@ -84,6 +84,9 @@ body.R .t{color:var(--b)}
 .dl{position:absolute;top:2px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;white-space:nowrap;font-family:'Unbounded',sans-serif;color:var(--b);background:var(--y);padding:1px 5px;border-radius:3px;z-index:3}
 .hn{position:absolute;top:9px;width:14px;height:32px;background:var(--b);border-radius:4px;box-shadow:0 0 0 2px var(--y)}
 .hl{left:-9px}.hr{right:-9px}
+.act{position:absolute;top:52px;left:0;right:0;height:6px;pointer-events:none}
+.act i{position:absolute;bottom:0;width:2px;border-radius:1px;background:var(--b);opacity:.5;transform:translateX(-1px)}
+.act i.pk{opacity:.95;width:3px}
 .tm{position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:space-between;padding-top:4px}
 .tm span{font-size:9px;font-variant-numeric:tabular-nums;opacity:.35}
 .ps{padding:6px 16px 0;display:flex;gap:6px}
@@ -172,6 +175,7 @@ body.R .t{color:var(--b)}
     <img class="fstrip" id="fstrip" alt="">
     <div class="fstrip-loading" id="fstripLoad">LOADING FILMSTRIP…</div>
     <div class="cr" id="crg" style="display:none"><div class="cri"><div class="dl" id="dli"></div><div class="hn hl"></div><div class="hn hr"></div></div></div>
+    <div class="act" id="act"></div>
     <div class="tm" id="tmk"></div>
   </div></div>
   <div class="ps" id="pst"></div>
@@ -201,7 +205,33 @@ let hlsR=null,replayReady=false;
 // the player picks their handles. Without this a clip positioned right after a
 // rally drifts later and later the longer they take to press save.
 let anchorT=0;
+let actPoints=[],actMax=0;
 function driftS(){return anchorT?Math.max(0,(Date.now()-anchorT)/1000):0}
+
+// Where the action was. The server scores motion between consecutive ring
+// frames; taller marks mean more movement, so a rally stands out from an empty
+// table and players have something to aim at instead of scrubbing blind.
+async function loadActivity(){
+  try{
+    const r=await fetch(B+'/api/activity?seconds='+zm+'&t='+Date.now());
+    const d=await r.json();
+    actPoints=d.points||[];actMax=d.max||0;
+    renderActivity();
+  }catch(e){}
+}
+function renderActivity(){
+  const el=document.getElementById('act');
+  if(!el)return;
+  if(!actPoints.length){el.innerHTML='';return}
+  const mx=Math.max(10,actMax);
+  el.innerHTML=actPoints.map(function(p){
+    const f=agoToFrac(p.ago);
+    if(f<0||f>1)return '';
+    const rel=p.score/mx;
+    const h=Math.max(1,Math.round(rel*6));
+    return '<i class="'+(rel>0.6?'pk':'')+'" style="left:'+(f*100).toFixed(2)+'%;height:'+h+'px"></i>';
+  }).join('');
+}
 
 // === HELPERS ===
 function fs2(s){const a=Math.abs(Math.floor(s));return(s<0?'-':'')+Math.floor(a/60)+':'+String(a%60).padStart(2,'0')}
@@ -381,6 +411,7 @@ function sw(t){
     ed=false;ex=false;py=false;
     // Load filmstrip first (fast), then init replay HLS
     loadFilmstrip(true);
+    loadActivity();
     initReplayHLS(function(){seekReplayTo(clipOld())});
   }else{
     // Destroy replay HLS, resume live
@@ -408,6 +439,7 @@ function sz(z){
   }
   ed=false;
   loadFilmstrip(true);
+  loadActivity();
   rr();
 }
 

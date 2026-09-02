@@ -154,6 +154,21 @@ if (!fs.existsSync(FRAMES_DIR)) fs.mkdirSync(FRAMES_DIR, { recursive: true });
 const RING_KEEP_MS = 2000 * 1000; // ~33 min, a little over the HLS buffer
 const STREAM_URL = 'http://127.0.0.1:8888/table2/stream.m3u8';
 let ringBusy = false;
+// Motion score per ring frame: ffmpeg blends the frame against the previous one
+// in difference mode and area-scales the result down to a single grey pixel, so
+// one byte of stdout is the mean absolute change. No image library needed, and
+// on 107x80 thumbnails it costs a few milliseconds.
+const ringScore = new Map();
+
+function scoreFrame(prevPath, curPath, cb) {
+  execFile('ffmpeg', [
+    '-v', 'error', '-i', prevPath, '-i', curPath,
+    '-filter_complex', '[0][1]blend=all_mode=difference,format=gray,scale=1:1:flags=area',
+    '-frames:v', '1', '-f', 'rawvideo', '-'
+  ], { timeout: 10000, encoding: 'buffer', maxBuffer: 4096 }, (err, stdout) => {
+    cb(err || !stdout || !stdout.length ? null : stdout[0]);
+  });
+}
 
 function ringFrames() {
   try {
@@ -174,9 +189,17 @@ function ringTick() {
   ], { timeout: 25000, maxBuffer: 1024 * 1024 }, () => {
     ringBusy = false;
     const now = Date.now();
+    const kept = [];
     ringFrames().forEach(x => {
-      if (now - x.t > RING_KEEP_MS) { try { fs.unlinkSync(x.p); } catch (e) {} }
+      if (now - x.t > RING_KEEP_MS) {
+        try { fs.unlinkSync(x.p); } catch (e) {}
+        ringScore.delete(x.t);
+      } else kept.push(x);
     });
+    if (kept.length >= 2) {
+      const cur = kept[kept.length - 1], prev = kept[kept.length - 2];
+      if (!ringScore.has(cur.t)) scoreFrame(prev.p, cur.p, v => { if (v != null) ringScore.set(cur.t, v); });
+    }
   });
 }
 
@@ -254,6 +277,22 @@ function generateFilmstrip(zoom, cb) {
   args.push('-filter_complex', 'hstack=inputs=' + picks.length, '-frames:v', '1', '-q:v', '4', '-f', 'image2', '-y', tmpFile);
   execFile('ffmpeg', args, { timeout: 60000, maxBuffer: 1024 * 1024 * 4 }, (error, stdout, stderr) => done(error, stderr));
 }
+
+// Where the action was: motion per ring frame across the requested window, so
+// the timeline can show players where to look instead of making them scrub blind.
+app.get('/api/activity', (req, res) => {
+  const seconds = Math.min(1800, Math.max(10, parseInt(req.query.seconds) || 60));
+  const now = Date.now();
+  const cutoff = now - seconds * 1000;
+  const points = [];
+  ringFrames().forEach(f => {
+    if (f.t < cutoff) return;
+    const v = ringScore.get(f.t);
+    if (v == null) return;
+    points.push({ ago: +((now - f.t) / 1000).toFixed(1), score: v });
+  });
+  res.json({ seconds: seconds, max: points.reduce((m, p) => Math.max(m, p.score), 0), points: points });
+});
 
 app.get('/api/filmstrip', (req, res) => {
   const seconds = Math.min(1800, Math.max(10, parseInt(req.query.seconds) || 60));

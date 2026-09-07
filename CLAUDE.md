@@ -123,7 +123,7 @@ Express app on port 3333. Endpoints: `GET /api/clips?limit&offset` (paginated cl
 ## Brand constants
 
 - Yellow `#FFE135`, Blue `#1A8FCC`
-- Fonts: Unbounded (display), Martian Mono (mono/body) — self-hosted at `/fonts/*.woff2` (full Cyrillic; Google Fonts dependency removed from landing + app; overview.html still uses Google Fonts)
+- Font: **ABC Diatype Cyrillic** (Dinamo) throughout — self-hosted at `/fonts/diatype-{400,500,700,900}.woff2`, subset to latin+Cyrillic. Licensed commercial face: keep the source package OUT of this public repo, only the subset webfonts belong here. It has `tnum`, which is what keeps timeline/clip numbers from jittering now that there's no monospace. Display headlines use 900; it's a compact grotesque, so display sizes are larger than they were under Unbounded. `overview.html` still uses Google Fonts (Space Grotesk/JetBrains Mono).
 - STREAM tab = blue background, yellow accents. REPLAY STATION = inverted.
 
 ## Starting point for your session

@@ -17,13 +17,15 @@
 <meta name="twitter:card" content="summary_large_image">
 <title>kutt.cam — повтори наживо для всіх</title>
 <style>
-@font-face{font-family:'Unbounded';src:url('/fonts/unbounded.woff2') format('woff2');font-weight:200 900;font-display:swap}
-@font-face{font-family:'Martian Mono';src:url('/fonts/martianmono.woff2') format('woff2');font-weight:100 800;font-stretch:75% 112.5%;font-display:swap}
+@font-face{font-family:'Diatype';src:url('/fonts/diatype-400.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Diatype';src:url('/fonts/diatype-500.woff2') format('woff2');font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:'Diatype';src:url('/fonts/diatype-700.woff2') format('woff2');font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:'Diatype';src:url('/fonts/diatype-900.woff2') format('woff2');font-weight:900;font-style:normal;font-display:swap}
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--y:#FFE135;--b:#1A8FCC}
 html,body{height:100%;overflow:hidden;overscroll-behavior:none}
 body{
-  font-family:'Martian Mono','SF Mono',monospace;
+  font-family:'Diatype',system-ui,sans-serif;
   background:var(--b);
   --fg:var(--y);--bg:var(--b);
   color:var(--fg);
@@ -51,22 +53,22 @@ a{color:inherit}
 .b-low{position:absolute;left:8vw;right:8vw;top:55dvh;display:flex;flex-direction:column;align-items:center;gap:12px}
 .label{font-size:10px;letter-spacing:.22em;text-transform:uppercase;opacity:.55;line-height:1.6}
 h1.display,h2.display{
-  font-family:'Unbounded',sans-serif;font-weight:700;
-  letter-spacing:-.01em;line-height:1.04;
+  font-family:'Diatype',sans-serif;font-weight:900;
+  letter-spacing:-.025em;line-height:1.0;
 }
-h1.display{font-size:clamp(29px,7.6vw,64px)}
-h2.display{font-size:clamp(23px,6vw,48px)}
-p.body{font-size:clamp(12px,3.2vw,15px);line-height:1.7;max-width:46ch;font-family:'Unbounded',sans-serif;font-weight:400}
+h1.display{font-size:clamp(40px,10.5vw,88px)}
+h2.display{font-size:clamp(32px,8.4vw,68px)}
+p.body{font-size:clamp(14px,3.7vw,17px);line-height:1.6;max-width:42ch;font-family:'Diatype',sans-serif;font-weight:400}
 .sub{font-size:11px;letter-spacing:.14em;opacity:.65;line-height:1.8}
 .pro-line{opacity:.95;font-weight:700;font-size:12px}
 .hero-logo{width:min(42vw,195px);height:auto}
 .hero-brand{display:flex;align-items:flex-end;gap:7px;transition:transform .4s cubic-bezier(.55,-.5,.7,.4),opacity .35s}
 .hero-brand.gone{transform:scale(0);opacity:0}
-.hero-sub{visibility:hidden;font-family:'Unbounded',sans-serif;font-weight:500;font-size:clamp(14px,3.9vw,20px);letter-spacing:.01em}
+.hero-sub{visibility:hidden;font-family:'Diatype',sans-serif;font-weight:500;font-size:clamp(15px,4.3vw,22px);letter-spacing:.01em}
 .hero-sub.show{visibility:visible;animation:su .45s ease-out}
-.cam-suffix{font-family:'Martian Mono',monospace;font-weight:700;font-size:clamp(34px,10vw,48px);line-height:1;margin-left:-16px;transform:translateY(.14em)}
+.cam-suffix{font-family:'Diatype',sans-serif;font-weight:700;font-size:clamp(34px,10vw,48px);line-height:1;margin-left:-.2em;transform:translateY(.12em)}
 .cam-suffix .dot{color:#ff3030;font-style:normal;animation:lp 1.2s ease-in-out infinite}
-.cam-suffix.sm{font-size:18px;align-self:flex-end;margin-left:-10px;transform:translateY(.15em)}
+.cam-suffix.sm{font-size:18px;align-self:flex-end;margin-left:-.2em;transform:translateY(.13em)}
 .hd-left.off{visibility:hidden}
 .hd-left.pop{animation:pi .4s ease-out}
 
@@ -74,7 +76,7 @@ p.body{font-size:clamp(12px,3.2vw,15px);line-height:1.7;max-width:46ch;font-fami
 .steps{display:flex;flex-direction:column;gap:10px;text-align:left}
 .step{display:flex;gap:16px;align-items:baseline}
 .step .n{font-size:11px;letter-spacing:.2em;opacity:.5;flex-shrink:0}
-.step .t{font-family:'Unbounded',sans-serif;font-size:clamp(11px,3vw,14px);font-weight:600;line-height:1.4}
+.step .t{font-family:'Diatype',sans-serif;font-size:clamp(13px,3.6vw,17px);font-weight:600;line-height:1.4}
 
 /* pricing */
 .beta-club{font-family:inherit;font-size:12px;letter-spacing:.14em;color:inherit;text-decoration:underline;text-underline-offset:3px;opacity:.85;transition:transform .12s;display:inline-block}
@@ -84,7 +86,7 @@ p.body{font-size:clamp(12px,3.2vw,15px);line-height:1.7;max-width:46ch;font-fami
 .cta-big{
   display:inline-flex;align-items:center;gap:12px;
   background:var(--b);color:var(--y);
-  font-family:'Unbounded',sans-serif;font-weight:700;font-size:clamp(15px,4.2vw,20px);
+  font-family:'Diatype',sans-serif;font-weight:700;font-size:clamp(16px,4.6vw,22px);
   letter-spacing:.04em;text-decoration:none;
   padding:18px 34px;border-radius:14px;
   animation:ctap 2.2s ease-in-out infinite;
@@ -782,7 +784,7 @@ function drawChannelsDemo(now,t){
     ctx.lineWidth=isAct?1.6:1;
     rr(rx,ryy,rw,rh,5); ctx.stroke();
     ctx.setLineDash([]);
-    ctx.font='700 11px "Martian Mono",monospace';
+    ctx.font='700 11px "Diatype",monospace';
     ctx.textAlign='left'; ctx.textBaseline='middle';
     ctx.fillStyle='rgba('+fgColor()+','+(isAct?1:0.55)+')';
     ctx.fillText(teaser?(lang==='uk'?'+ твій клуб':'+ your spot'):names[i], rx+12, ryy+rh/2);

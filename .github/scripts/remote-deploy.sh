@@ -11,8 +11,9 @@ cp /tmp/kutt-deploy/app.html /var/www/html/app/index.html        # the app, serv
 cp /tmp/kutt-deploy/overview.html /var/www/html/overview.html
 cp /tmp/kutt-deploy/og.png /var/www/html/og.png
 mkdir -p /var/www/html/fonts
-cp /tmp/kutt-deploy/unbounded.woff2 /var/www/html/fonts/unbounded.woff2
-cp /tmp/kutt-deploy/martianmono.woff2 /var/www/html/fonts/martianmono.woff2
+for w in 400 500 700 900; do
+  cp /tmp/kutt-deploy/diatype-$w.woff2 /var/www/html/fonts/diatype-$w.woff2
+done
 echo "frontend installed"
 
 if ! cmp -s /tmp/kutt-deploy/server.js /opt/kutt/api/server.js; then

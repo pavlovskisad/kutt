@@ -1,0 +1,25 @@
+name: Show deploy public key
+
+# Prints the PUBLIC half of the VPS_SSH_KEY deploy key. Paste it into Hetzner
+# (Security → SSH keys) and pick it when creating a server, so the deploy
+# pipeline can log in to the new box without anyone touching a terminal.
+# Safe to print: a public key is meant to be shared; the private key never
+# leaves the secret.
+on:
+  workflow_dispatch:
+
+jobs:
+  show:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Derive public key
+        env:
+          KEY_B64: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s' "$KEY_B64" | base64 -d > k
+          echo "=== copy the next line into Hetzner → Security → SSH keys ==="
+          ssh-keygen -y -f k | sed 's/$/ kutt-deploy/'
+          echo "=== fingerprint ==="
+          ssh-keygen -lf k
+          rm -f k

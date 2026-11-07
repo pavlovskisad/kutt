@@ -1,16 +1,124 @@
 const express = require('express');
 const { execFile } = require('child_process');
+const http = require('http');
 const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
 const app = express();
+// Behind nginx: take the client IP from X-Forwarded-For (nginx sets it to
+// $remote_addr), otherwise every player is 127.0.0.1 and shares one rate limit.
+app.set('trust proxy', 'loopback');
 app.use(cors());
 app.use(express.json());
-const HLS_DIR = '/opt/kutt/hls/table2';
 const CLIPS_DIR = '/opt/kutt/clips';
 const LOGO_PATH = '/opt/kutt/logos/kutt-watermark.png';
-const HLS_URL = 'http://127.0.0.1:8888/table2/stream.m3u8'; // MUST use stream.m3u8 (not index/master) for -sseof
+const MASTER_URL = 'http://127.0.0.1:8888/table2/index.m3u8';
 const PORT = 3333;
+
+// ---- Finding a moment in the live HLS buffer ------------------------------
+// ffmpeg can't seek a live playlist: `-sseof` needs a known duration, which a
+// live HLS input never has ("Cannot use -sseof, file duration not known"), so
+// ffmpeg silently starts near the live edge instead. What it does honour is
+// `-live_start_index N` (start N segments from the end). So we read the media
+// playlist ourselves, find the segment that holds the requested moment, start
+// ffmpeg there, and trim the remainder with an output-side `-ss`.
+// The media playlist name differs between MediaMTX versions (stream.m3u8 in
+// old ones, video1_stream.m3u8 + audio2_stream.m3u8 in new ones), so it is
+// resolved from the master playlist rather than hardcoded.
+function fetchText(url, cb) {
+  let finished = false;
+  const done = (err, body) => { if (!finished) { finished = true; cb(err, body); } };
+  const req = http.get(url, { timeout: 5000 }, res => {
+    if (res.statusCode !== 200) { res.resume(); return done(new Error('HTTP ' + res.statusCode)); }
+    let body = '';
+    res.setEncoding('utf8');
+    res.on('data', d => { body += d; });
+    res.on('end', () => done(null, body));
+    res.on('error', done);
+  });
+  req.on('timeout', () => req.destroy(new Error('timeout')));
+  req.on('error', done);
+}
+
+// -> { video: media playlist URL (video, or muxed a/v), clipInput: URL to cut
+// clips from (the master when audio is a separate rendition, so ffmpeg reads both) }
+function resolveStream(cb) {
+  fetchText(MASTER_URL, (err, text) => {
+    if (err) return cb(err);
+    if (/#EXTINF/.test(text)) return cb(null, { video: MASTER_URL, clipInput: MASTER_URL });
+    const lines = text.split('\n').map(s => s.trim());
+    let variant = null, splitAudio = false;
+    lines.forEach((l, i) => {
+      if (/^#EXT-X-MEDIA:/.test(l) && /TYPE=AUDIO/.test(l) && /URI="/.test(l)) splitAudio = true;
+      if (!variant && /^#EXT-X-STREAM-INF/.test(l)) {
+        for (let j = i + 1; j < lines.length; j++) {
+          if (lines[j] && lines[j][0] !== '#') { variant = lines[j]; break; }
+        }
+      }
+    });
+    if (!variant) return cb(new Error('no variant in master playlist'));
+    const video = new URL(variant, MASTER_URL).href;
+    cb(null, { video: video, clipInput: splitAudio ? MASTER_URL : video });
+  });
+}
+
+function parseMediaPlaylist(text) {
+  const segs = [];
+  let dur = null, gap = false, trailing = 0;
+  text.split('\n').forEach(raw => {
+    const l = raw.trim();
+    if (!l) return;
+    if (l === '#EXT-X-GAP') gap = true;
+    else if (l.indexOf('#EXTINF:') === 0) dur = parseFloat(l.slice(8));
+    else if (l.indexOf('#EXT-X-PART:') === 0) {
+      const m = l.match(/DURATION=([\d.]+)/);
+      if (m) trailing += parseFloat(m[1]);
+    } else if (l[0] !== '#') {
+      // ffmpeg counts every segment line, gaps included, so we do too.
+      segs.push({ dur: dur || 0, gap: gap });
+      dur = null; gap = false; trailing = 0; // parts listed so far belonged to this segment
+    }
+  });
+  return { segs: segs, trailing: trailing }; // trailing = in-progress segment (LL-HLS parts)
+}
+
+// Where is the moment `secondsAgo` before the live edge?
+// -> { stream, index (negative, for -live_start_index), offset (s to trim), buffered (s) }
+// "Live edge" = end of the playlist including LL-HLS parts, the same point the
+// player's buffered end sits at, which is what the Replay Station measures from.
+function locate(secondsAgo, cb, attempt) {
+  attempt = attempt || 0;
+  resolveStream((err, stream) => {
+    if (err) return cb(err);
+    fetchText(stream.video, (err2, text) => {
+      if (err2) return cb(err2);
+      const pl = parseMediaPlaylist(text);
+      const n = pl.segs.length;
+      const first = pl.segs.findIndex(s => !s.gap);
+      if (!n || first < 0) return cb(new Error('buffer empty'));
+      // ffmpeg fetches the playlist again a moment later. If a segment completes
+      // in between, its count shifts by one and we'd start a segment late, so
+      // don't launch right on a boundary.
+      const last = pl.segs[n - 1].dur;
+      if (attempt < 4 && last - pl.trailing < 0.4) {
+        return setTimeout(() => locate(secondsAgo, cb, attempt + 1), 500);
+      }
+      const starts = [];
+      let acc = 0;
+      pl.segs.forEach(s => { starts.push(acc); acc += s.dur; });
+      const total = acc + pl.trailing;
+      const target = Math.max(starts[first], total - secondsAgo);
+      let i = n - 1;
+      while (i > first && starts[i] > target) i--;
+      cb(null, {
+        stream: stream,
+        index: i - n,
+        offset: Math.max(0, target - starts[i]),
+        buffered: total - starts[first]
+      });
+    });
+  });
+}
 
 // Serve clips with download header
 app.use('/thumbs', express.static(path.join(CLIPS_DIR, 'thumbs')));
@@ -95,30 +203,37 @@ app.post('/api/clip', (req, res) => {
   const durInt = Math.round(duration);
   const clipName = makeClipName(durInt);
   const outputFile = path.join(CLIPS_DIR, clipName + '.mp4');
-  const hasLogo = fs.existsSync(LOGO_PATH);
   const encodeTimeout = Math.max(120000, durInt * 8000); // ~8s per clip second, min 2 min
-  const args = hasLogo ? [
-    '-sseof', '-' + startSecondsAgo, '-i', HLS_URL, '-i', LOGO_PATH,
-    '-t', String(durInt), '-filter_complex', '[0:v][1:v]overlay=W-w-20:14:format=auto',
-    '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
-    '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', '-y', outputFile
-  ] : [
-    '-sseof', '-' + startSecondsAgo, '-i', HLS_URL,
-    '-t', String(durInt), '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
-    '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', '-y', outputFile
-  ];
-  execFile('ffmpeg', args, { timeout: encodeTimeout }, (error) => {
-    if (error) return res.status(500).json({ error: 'Encoding failed' });
-    const stats = fs.statSync(outputFile);
-    var thumbDir = path.join(CLIPS_DIR, 'thumbs');
-    if (!fs.existsSync(thumbDir)) fs.mkdirSync(thumbDir, { recursive: true });
-    var thumbFile = path.join(thumbDir, clipName + '.webp');
-    // Lightweight thumbnails: 240px wide, 8fps, max 3 seconds, lower quality
-    var thumbFps = 8;
-    var thumbDur = Math.min(3, durInt);
-    execFile('ffmpeg', ['-i', outputFile, '-t', String(thumbDur), '-vf', 'scale=240:-1,fps=' + thumbFps, '-c:v', 'libwebp', '-lossless', '0', '-q:v', '50', '-loop', '0', '-an', '-y', thumbFile], { timeout: encodeTimeout }, function() {});
-    res.json({ url: '/clips/' + clipName + '.mp4', thumb: '/thumbs/' + clipName + '.webp', filename: clipName + '.mp4', duration: durInt, sizeMB: (stats.size / 1024 / 1024).toFixed(1) });
-    cleanOldClips();
+
+  locate(startSecondsAgo, (locErr, loc) => {
+    if (locErr) {
+      delete recentClips[clientIP];
+      console.error('[clip] cannot locate start:', locErr.message);
+      return res.status(503).json({ error: 'Stream offline' });
+    }
+    const args = ['-live_start_index', String(loc.index), '-i', loc.stream.clipInput];
+    if (fs.existsSync(LOGO_PATH)) {
+      args.push('-i', LOGO_PATH, '-filter_complex', '[0:v][1:v]overlay=W-w-20:14:format=auto');
+    }
+    // Output-side -ss: decode from the segment start and drop the first `offset`
+    // seconds (always under one segment), so the cut lands on the exact moment.
+    args.push('-ss', loc.offset.toFixed(3), '-t', String(durInt),
+      '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+      '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', '-y', outputFile);
+    execFile('ffmpeg', args, { timeout: encodeTimeout, maxBuffer: 1024 * 1024 * 8 }, (error) => {
+      if (error) {
+        console.error('[clip] ffmpeg failed:', String(error.message).split('\n').slice(-3).join(' | '));
+        return res.status(500).json({ error: 'Encoding failed' });
+      }
+      const stats = fs.statSync(outputFile);
+      const thumbDir = path.join(CLIPS_DIR, 'thumbs');
+      if (!fs.existsSync(thumbDir)) fs.mkdirSync(thumbDir, { recursive: true });
+      const thumbFile = path.join(thumbDir, clipName + '.webp');
+      // Lightweight thumbnails: 240px wide, 8fps, max 3 seconds, lower quality
+      const thumbDur = Math.min(3, durInt);
+      execFile('ffmpeg', ['-i', outputFile, '-t', String(thumbDur), '-vf', 'scale=240:-1,fps=8', '-c:v', 'libwebp', '-lossless', '0', '-q:v', '50', '-loop', '0', '-an', '-y', thumbFile], { timeout: encodeTimeout }, function() {});
+      res.json({ url: '/clips/' + clipName + '.mp4', thumb: '/thumbs/' + clipName + '.webp', filename: clipName + '.mp4', duration: durInt, sizeMB: (stats.size / 1024 / 1024).toFixed(1) });
+    });
   });
 });
 
@@ -135,8 +250,6 @@ app.get('/api/likes/:clipId', (req, res) => {
   res.json({ count });
 });
 
-function cleanOldClips() {}
-
 // Filmstrip API - generates a horizontal sprite sheet of frames from the live buffer
 const FILMSTRIP_DIR = '/tmp/kutt-filmstrips';
 if (!fs.existsSync(FILMSTRIP_DIR)) fs.mkdirSync(FILMSTRIP_DIR, { recursive: true });
@@ -144,15 +257,16 @@ if (!fs.existsSync(FILMSTRIP_DIR)) fs.mkdirSync(FILMSTRIP_DIR, { recursive: true
 // Cache per zoom level: { '60': { file, time, generating } }
 const filmstripCache = {};
 
-// Continuous frame ring. One cheap grab from the LIVE EDGE every 10s, kept for
-// ~33 min. Long filmstrips composite from these instead of seeking backwards
-// through the buffer: ffmpeg has to stream everything it seeks past, so a 5m
-// window costs minutes and a 30m window is hopeless. Reading the live edge is
-// always ~2s no matter how far back the strip reaches.
+// Continuous frame ring. One cheap grab from the LIVE EDGE every 6s, kept for
+// ~33 min. Filmstrips composite from these instead of reading backwards
+// through the buffer, which costs ~0.7s per second of window (a 30m strip
+// would take ~20 min). Reading the live edge is always ~2s.
+// Each frame is the first frame of the newest complete segment, and its file
+// name is the wall-clock moment it shows (not when it was grabbed), so the
+// timeline lines up with what the Replay Station plays.
 const FRAMES_DIR = path.join(FILMSTRIP_DIR, 'ring');
 if (!fs.existsSync(FRAMES_DIR)) fs.mkdirSync(FRAMES_DIR, { recursive: true });
 const RING_KEEP_MS = 2000 * 1000; // ~33 min, a little over the HLS buffer
-const STREAM_URL = 'http://127.0.0.1:8888/table2/stream.m3u8';
 let ringBusy = false;
 // Motion score per ring frame: ffmpeg blends the frame against the previous one
 // in difference mode and area-scales the result down to a single grey pixel, so
@@ -182,25 +296,33 @@ function ringFrames() {
 function ringTick() {
   if (ringBusy) return;
   ringBusy = true;
-  const f = path.join(FRAMES_DIR, Date.now() + '.jpg');
-  execFile('ffmpeg', [
-    '-an', '-sseof', '-3', '-i', STREAM_URL,
-    '-frames:v', '1', '-q:v', '5', '-vf', 'scale=-1:80', '-y', f
-  ], { timeout: 25000, maxBuffer: 1024 * 1024 }, () => {
-    ringBusy = false;
-    const now = Date.now();
-    const kept = [];
-    ringFrames().forEach(x => {
-      if (now - x.t > RING_KEEP_MS) {
-        try { fs.unlinkSync(x.p); } catch (e) {}
-        ringScore.delete(x.t);
-      } else kept.push(x);
-    });
-    if (kept.length >= 2) {
-      const cur = kept[kept.length - 1], prev = kept[kept.length - 2];
-      if (!ringScore.has(cur.t)) scoreFrame(prev.p, cur.p, v => { if (v != null) ringScore.set(cur.t, v); });
-    }
+  const asked = Date.now();
+  // locate(0) clamps to the newest complete segment: index -1, and `offset` is
+  // how far its first frame sits behind the live edge.
+  locate(0, (err, loc) => {
+    if (err) { ringBusy = false; return; }
+    const f = path.join(FRAMES_DIR, Math.round(asked - loc.offset * 1000) + '.jpg');
+    execFile('ffmpeg', [
+      '-an', '-live_start_index', String(loc.index), '-i', loc.stream.video,
+      '-frames:v', '1', '-q:v', '5', '-vf', 'scale=-1:80', '-y', f
+    ], { timeout: 25000, maxBuffer: 1024 * 1024 }, () => ringSettle());
   });
+}
+
+function ringSettle() {
+  ringBusy = false;
+  const now = Date.now();
+  const kept = [];
+  ringFrames().forEach(x => {
+    if (now - x.t > RING_KEEP_MS) {
+      try { fs.unlinkSync(x.p); } catch (e) {}
+      ringScore.delete(x.t);
+    } else kept.push(x);
+  });
+  if (kept.length >= 2) {
+    const cur = kept[kept.length - 1], prev = kept[kept.length - 2];
+    if (!ringScore.has(cur.t)) scoreFrame(prev.p, cur.p, v => { if (v != null) ringScore.set(cur.t, v); });
+  }
 }
 
 function generateFilmstrip(zoom, cb) {
@@ -244,16 +366,20 @@ function generateFilmstrip(zoom, cb) {
   if (ring.length < 3) {
     if (zoom > 120) return done(new Error('ring_empty'));
     const fpsRate = frames / zoom;
-    execFile('ffmpeg', [
-      '-an',
-      '-sseof', '-' + zoom,
-      '-i', STREAM_URL,
-      '-vf', 'fps=' + fpsRate.toFixed(6) + ',scale=-1:' + height + ',tile=' + frames + 'x1',
-      '-frames:v', '1',
-      '-q:v', '4',
-      '-f', 'image2',
-      '-y', tmpFile
-    ], { timeout: 120000, maxBuffer: 1024 * 1024 * 4 }, (error, stdout, stderr) => done(error, stderr));
+    locate(zoom, (err, loc) => {
+      if (err) return done(err);
+      execFile('ffmpeg', [
+        '-an',
+        '-live_start_index', String(loc.index),
+        '-i', loc.stream.video,
+        // no -ss here: it would drop the single tiled output frame (timestamp 0)
+        '-vf', 'fps=' + fpsRate.toFixed(6) + ',scale=-1:' + height + ',tile=' + frames + 'x1',
+        '-frames:v', '1',
+        '-q:v', '4',
+        '-f', 'image2',
+        '-y', tmpFile
+      ], { timeout: 120000, maxBuffer: 1024 * 1024 * 4 }, (error, stdout, stderr) => done(error, stderr));
+    });
     return;
   }
 

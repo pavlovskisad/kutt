@@ -13,6 +13,8 @@ jobs:
   delete:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: Validate ids
         env:
           CLIPS: ${{ inputs.clips }}
@@ -27,15 +29,18 @@ jobs:
 
       - name: Set up SSH
         run: |
+          H=$(tr -d ' \r\n' < ops/host)
+          [ -n "$H" ] || { echo "ops/host is empty — no server configured"; exit 1; }
+          echo "VPS_HOST=$H" >> "$GITHUB_ENV"
           mkdir -p ~/.ssh
           echo "${{ secrets.VPS_SSH_KEY }}" | base64 -d > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H 77.42.76.62 >> ~/.ssh/known_hosts
+          ssh-keyscan -H "$H" >> ~/.ssh/known_hosts
 
       - name: Delete on VPS
         env:
           CLIPS: ${{ inputs.clips }}
         run: |
-          ssh -i ~/.ssh/deploy_key root@77.42.76.62 "cd /opt/kutt/clips && for f in $CLIPS; do \
+          ssh -i ~/.ssh/deploy_key root@$VPS_HOST "cd /opt/kutt/clips && for f in $CLIPS; do \
             if [ -f \$f.mp4 ]; then rm -f \$f.mp4 thumbs/\$f.webp; echo \"deleted \$f\"; else echo \"not found \$f\"; fi; \
           done; echo \"remaining: \$(ls *.mp4 2>/dev/null | wc -l) clips\""

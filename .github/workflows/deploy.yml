@@ -1,5 +1,9 @@
 name: Deploy to VPS
 
+# Push to main → upload → provision if needed → install → health check.
+# The target server's IP lives in ops/host (one line). Empty = no server yet,
+# and the deploy is skipped instead of failing.
+
 on:
   push:
     branches: [main]
@@ -15,34 +19,65 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Target server
+        id: host
+        run: |
+          H=$(tr -d ' \r\n' < ops/host)
+          if [ -z "$H" ]; then
+            echo "::notice::ops/host is empty — no server configured, skipping deploy"
+            echo "skip=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "VPS_HOST=$H" >> "$GITHUB_ENV"
+            echo "deploying to $H"
+          fi
+
       - name: Set up SSH
+        if: steps.host.outputs.skip != '1'
         run: |
           mkdir -p ~/.ssh
           # Secret is the private key base64-encoded to a single line (paste-proof)
           echo "${{ secrets.VPS_SSH_KEY }}" | base64 -d > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H 77.42.76.62 >> ~/.ssh/known_hosts
+          # A just-created server can take a minute to start sshd.
+          for i in $(seq 1 12); do
+            ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null && break
+            echo "waiting for ssh on $VPS_HOST…"; sleep 10
+          done
+          grep -q . ~/.ssh/known_hosts
 
       - name: Upload files
+        if: steps.host.outputs.skip != '1'
         run: |
-          ssh -i ~/.ssh/deploy_key root@77.42.76.62 "mkdir -p /tmp/kutt-deploy"
-          scp -i ~/.ssh/deploy_key server.js index.html app.html overview.html og.png fonts/diatype-400.woff2 fonts/diatype-500.woff2 fonts/diatype-700.woff2 fonts/diatype-900.woff2 root@77.42.76.62:/tmp/kutt-deploy/
+          K="-i $HOME/.ssh/deploy_key"
+          ssh $K root@$VPS_HOST "rm -rf /tmp/kutt-deploy && mkdir -p /tmp/kutt-deploy/ops"
+          scp $K server.js package.json index.html app.html overview.html og.png \
+            fonts/diatype-400.woff2 fonts/diatype-500.woff2 fonts/diatype-700.woff2 fonts/diatype-900.woff2 \
+            root@$VPS_HOST:/tmp/kutt-deploy/
+          scp $K ops/bootstrap.sh ops/mediamtx.yml ops/mediamtx.service ops/kutt-api.service \
+            ops/nginx-kutt.conf ops/kutt-watermark.png \
+            root@$VPS_HOST:/tmp/kutt-deploy/ops/
 
-      - name: Install files and restart API if needed
+      - name: Install (provisions a fresh server first)
+        if: steps.host.outputs.skip != '1'
         run: |
-          ssh -i ~/.ssh/deploy_key root@77.42.76.62 'bash -s' < .github/scripts/remote-deploy.sh
+          ssh -i ~/.ssh/deploy_key root@$VPS_HOST 'bash -s' < .github/scripts/remote-deploy.sh
 
       - name: Health check
+        if: steps.host.outputs.skip != '1'
         run: |
-          # /api/buffer-info goes through nginx to the Node API — real API liveness.
-          # (/health falls through to index.html: no nginx location for it.)
+          # The API itself, checked on the box — works before DNS/TLS are ready.
           for i in 1 2 3 4 5; do
-            if curl -sf https://kutt.cam/api/buffer-info; then
+            if ssh -i ~/.ssh/deploy_key root@$VPS_HOST "curl -sf http://127.0.0.1:3333/api/buffer-info"; then
               echo ""
-              echo "deploy OK"
-              exit 0
+              echo "API OK"
+              break
             fi
+            [ "$i" = 5 ] && { echo "API health check failed"; exit 1; }
             sleep 3
           done
-          echo "health check failed"
-          exit 1
+          # The public site. Not fatal: right after a server move DNS can lag.
+          if curl -sf -o /dev/null https://kutt.cam/api/buffer-info; then
+            echo "https://kutt.cam OK"
+          else
+            echo "::warning::https://kutt.cam not reachable yet (DNS or TLS still settling?)"
+          fi

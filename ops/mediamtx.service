@@ -1,0 +1,14 @@
+[Unit]
+Description=MediaMTX (RTMP ingest + HLS buffer for KUTT)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=root
+WorkingDirectory=/opt/kutt
+ExecStart=/opt/kutt/mediamtx /opt/kutt/mediamtx.yml
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,32 @@
+# /opt/kutt/mediamtx.yml — installed by ops/bootstrap.sh
+# Anything not listed here keeps MediaMTX's default.
+#
+# OBS publishes to  rtmp://kutt.cam:1935/  with stream key  table2
+# HLS is read at    http://127.0.0.1:8888/table2/index.m3u8  (nginx exposes /hls/)
+
+logLevel: info
+
+# Only RTMP in and HLS out are used; the rest stay off.
+rtsp: no
+webrtc: no
+srt: no
+api: no
+
+rtmp: yes
+rtmpAddress: :1935
+
+hls: yes
+hlsAddress: :8888
+hlsAllowOrigin: '*'
+# Start buffering the moment OBS connects, not when the first viewer shows up,
+# so the 30-minute window is always full.
+hlsAlwaysRemux: yes
+hlsVariant: lowLatency
+# 900 x 2s = the 30-minute rolling buffer, held in RAM (no disk).
+hlsSegmentCount: 900
+hlsSegmentDuration: 2s
+hlsPartDuration: 200ms
+hlsSegmentMaxSize: 50M
+
+paths:
+  table2:

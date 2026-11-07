@@ -57,7 +57,12 @@ if ! cmp -s "$D/ops/mediamtx.yml" /opt/kutt/mediamtx.yml; then
 fi
 
 echo "== watermark"
-install -m 644 "$D/ops/kutt-watermark.png" /opt/kutt/logos/kutt-watermark.png
+# Never overwrite an existing one: on a restored/older box it's the original
+# artwork, and the repo copy is only a rebuild of it.
+if [ ! -f /opt/kutt/logos/kutt-watermark.png ]; then
+  install -m 644 "$D/ops/kutt-watermark.png" /opt/kutt/logos/kutt-watermark.png
+  echo "installed"
+fi
 
 echo "== systemd units"
 install -m 644 "$D/ops/mediamtx.service" /etc/systemd/system/mediamtx.service

@@ -76,7 +76,7 @@ jobs:
             sleep 3
           done
           # The public site. Not fatal: right after a server move DNS can lag.
-          if curl -sf -o /dev/null https://kutt.cam/api/buffer-info; then
+          if curl -sf -m 15 -o /dev/null https://kutt.cam/api/buffer-info; then
             echo "https://kutt.cam OK"
           else
             echo "::warning::https://kutt.cam not reachable yet (DNS or TLS still settling?)"

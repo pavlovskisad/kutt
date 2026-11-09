@@ -56,12 +56,20 @@ echo "--- tls ---"
 # challenge counts against its rate limit. Deploys retry until DNS catches up.
 CERT=/etc/letsencrypt/live/kutt.cam/cert.pem
 has_name() { [ -f "$CERT" ] && openssl x509 -in "$CERT" -noout -ext subjectAltName 2>/dev/null | grep -q "DNS:$1"; }
+# Ask a public resolver first: right after a DNS change the box's own resolver
+# can keep serving the old IP for up to the record's TTL (an hour at GoDaddy).
+resolve() {
+  local ip=""
+  command -v dig >/dev/null && ip=$(dig +short +time=3 +tries=1 A "$1" @1.1.1.1 </dev/null 2>/dev/null | grep -E '^[0-9.]+$' | tail -1)
+  [ -n "$ip" ] || ip=$(getent ahostsv4 "$1" | awk 'NR==1{print $1}')
+  echo "$ip"
+}
 WANT=""; MISSING=""
 for n in kutt.cam kutt.online; do
-  ip=$(getent ahostsv4 "$n" | awk 'NR==1{print $1}')
+  ip=$(resolve "$n")
   if [ -n "$ip" ] && hostname -I | tr ' ' '\n' | grep -qx "$ip"; then
     WANT="$WANT -d $n"
-    if has_name "$n"; then echo "$n: certificate OK"; else MISSING=1; fi
+    if has_name "$n"; then echo "$n: certificate OK"; else echo "$n: points here, needs a certificate"; MISSING=1; fi
   else
     echo "$n -> ${ip:-nothing}: DNS doesn't point here yet"
   fi

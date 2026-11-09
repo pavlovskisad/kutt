@@ -16,7 +16,7 @@ export DEBIAN_FRONTEND=noninteractive
 
 echo "== packages"
 apt-get update -q </dev/null
-apt-get install -y -q nginx ffmpeg nodejs npm certbot python3-certbot-nginx curl ca-certificates openssl </dev/null
+apt-get install -y -q nginx ffmpeg nodejs npm certbot python3-certbot-nginx curl ca-certificates openssl bind9-dnsutils </dev/null
 node --version
 
 echo "== swap (keeps an encode spike from OOM-killing MediaMTX and its buffer)"

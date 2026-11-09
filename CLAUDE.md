@@ -10,7 +10,7 @@ This file is the handoff from a chat-based Claude session that built most of the
 [Camera (OBS/Lenovo monoblock at club)]
          │ RTMP push
          ▼
-[MediaMTX on Hetzner VPS]  ── serves HLS from memory (no disk)
+[MediaMTX on the VPS]  ── serves HLS from memory (no disk)
          │
          ├─ RTMP :1935
          └─ HLS  :8888  (LL-HLS, 30min buffer, master=index.m3u8 → media playlist(s))
@@ -25,8 +25,8 @@ This file is the handoff from a chat-based Claude session that built most of the
          [Browser]  ── app.html (single file, vanilla JS + hls.js)
 ```
 
-Server: Hetzner VPS, Ubuntu 24.04 — its IP lives in **`ops/host`** (one line; every workflow reads it). Domain `kutt.cam` (kutt.online redirects there).
-The whole server is reproducible from this repo: `ops/` holds MediaMTX config, systemd units, nginx vhost, watermark and `bootstrap.sh`. (History: the first VPS, 77.42.76.62, was deleted by Hetzner in Nov 2026 over missed billing notices — every clip on it was lost. That's why the box is now rebuilt by script, not by hand.)
+Server: DigitalOcean droplet (Basic/Regular, 2 vCPU / 4 GB / 80 GB, $24/mo), Ubuntu 24.04 — its IP lives in **`ops/host`** (one line; every workflow reads it). Domain `kutt.cam` (kutt.online redirects there).
+The whole server is reproducible from this repo: `ops/` holds MediaMTX config, systemd units, nginx vhost, watermark and `bootstrap.sh`. (History: the first VPS, 77.42.76.62, was deleted by Hetzner in Nov 2026 over missed billing notices — every clip on it was lost, and the account was closed. We moved to DigitalOcean on 2026-11-09. The box is now rebuilt by script, not by hand, and the scripts are provider-agnostic: any Ubuntu 24.04 VPS with root SSH and open ports works.)
 
 ## Key paths on the VPS
 
@@ -82,9 +82,9 @@ Express app on port 3333. Endpoints: `GET /api/clips?limit&offset` (paginated cl
 3. gets/extends the Let's Encrypt cert for whichever of kutt.cam / kutt.online already resolve to the box (certbot `--register-unsafely-without-email`; never send the user's email). Deploys retry until DNS catches up.
 Health check: the API on the box (`curl 127.0.0.1:3333/api/buffer-info` over SSH, fatal) + public `https://kutt.cam` (warning only).
 
-**Moving to a new server** (what we did after the Hetzner deletion): user adds the deploy public key in Hetzner (run the **Show deploy public key** workflow to print it), creates Ubuntu 24.04 with that key, sends the IP → write it to `ops/host`, push → the deploy provisions everything. User points GoDaddy A records (kutt.cam, kutt.online) at it; re-run the deploy (workflow_dispatch) once DNS resolves to get TLS. OBS needs no change if it publishes to `rtmp://kutt.cam/` key `table2`.
+**Moving to a new server** (what we did after the Hetzner deletion): user adds the deploy public key at the provider (run the **Show deploy public key** workflow to print it), creates an Ubuntu 24.04 server with that key, sends the IP → write it to `ops/host`, push → the deploy provisions everything. User points GoDaddy A records (kutt.cam, kutt.online) at it; re-run the deploy (workflow_dispatch) once DNS resolves to get TLS (the TLS step asks 1.1.1.1, not the box's resolver, which caches the old IP for the TTL). OBS needs no change if it publishes to `rtmp://kutt.cam/` key `table2`.
 
-- Auth: repo secret `VPS_SSH_KEY` = base64 (single line) of a dedicated ed25519 private key; its public half goes into the server's authorized_keys via Hetzner's SSH-key picker at creation.
+- Auth: repo secret `VPS_SSH_KEY` = base64 (single line) of a dedicated ed25519 private key; its public half goes into the server's authorized_keys via the provider's SSH-key picker at creation.
 - Other workflows: **Delete clips** (manual, validated ids), **Show deploy public key**.
 - Deploy status: repo → Actions tab, or via GitHub MCP tools (`actions_list`, `get_job_logs`) from a Claude session.
 - **nginx after TLS:** certbot edits the live vhost in place (`# managed by Certbot` lines). `bootstrap.sh` only writes `ops/nginx-kutt.conf` while those lines are absent, so later edits to the repo copy do NOT reach a live box — change them carefully on the server (`nginx -t && systemctl reload nginx`) or mirror the edit by hand.
@@ -93,7 +93,7 @@ Health check: the API on the box (`curl 127.0.0.1:3333/api/buffer-info` over SSH
 ## Workflow notes from prior sessions
 
 - **User works mostly from their phone** (Claude Code cloud sessions + Termius for SSH, claude.ai app). Do NOT propose Mac-terminal workflows; the deploy pipeline exists precisely so the user never needs a terminal. When a manual VPS step is unavoidable, give a single copy-pasteable command for Termius.
-- **Claude's sandbox cannot SSH to the VPS** (port 22 blocked) — but outbound HTTPS works, so `curl https://kutt.cam/...` is available for verifying deploys.
+- **Claude's sandbox cannot SSH to the VPS** (port 22 blocked) — but outbound HTTPS works, so `curl https://kutt.cam/...` is available for verifying deploys. The sandbox's egress proxy re-signs TLS, so certificates you inspect from the sandbox are the proxy's, not the server's — read the real one from the deploy log.
 - **Termius pastes fine; Blink mangles URLs** (wraps them in `<>`). The user's Mac zsh treats `!` as history expansion — avoid `!` inside double quotes in any command you hand over.
 - **`.github/scripts/remote-deploy.sh` arrives on stdin** (`ssh 'bash -s' < script`), so any command in it that reads stdin — ffmpeg especially — swallows the rest of the script and the deploy dies with a bogus `exit 127`. Always add `</dev/null`.
 - **Avoid multi-step `sed` pipelines on the server.** Past attempts corrupted files due to quote/escaping issues. Full-file deploys via the pipeline are the reliable path; simple single `sed` in single quotes is OK for emergencies.
